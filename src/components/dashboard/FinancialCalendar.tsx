@@ -139,9 +139,6 @@ export const FinancialCalendar = () => {
           {hasExpenses && (
             <div className="w-2 h-2 bg-destructive rounded-full"></div>
           )}
-          {hasRevenue && hasExpenses && (
-            <div className="w-2 h-2 bg-warning rounded-full"></div>
-          )}
         </div>
         
         {/* Today indicator */}
@@ -255,10 +252,6 @@ export const FinancialCalendar = () => {
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-destructive"></div>
               <span>Expenses</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-warning"></div>
-              <span>Both</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-primary"></div>
