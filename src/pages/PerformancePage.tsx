@@ -133,20 +133,20 @@ const PerformancePage = () => {
 
       if (salesError) throw salesError;
 
-      // Calculate expenses data
-      const { data: expensesData, error: expensesError } = await supabase
-        .from('expenses')
+      // Calculate claims data (approved claims are the actual expenses)
+      const { data: claimsData, error: claimsError } = await supabase
+        .from('claims')
         .select('amount')
         .eq('user_id', userId)
         .eq('status', 'approved')
-        .gte('expense_date', `${year}-${month.toString().padStart(2, '0')}-01`)
-        .lt('expense_date', `${month === 12 ? year + 1 : year}-${month === 12 ? '01' : (month + 1).toString().padStart(2, '0')}-01`);
+        .gte('submitted_date', `${year}-${month.toString().padStart(2, '0')}-01`)
+        .lt('submitted_date', `${month === 12 ? year + 1 : year}-${month === 12 ? '01' : (month + 1).toString().padStart(2, '0')}-01`);
 
-      if (expensesError) throw expensesError;
+      if (claimsError) throw claimsError;
 
       const totalSalesAmount = salesData?.reduce((sum, sale) => sum + Number(sale.amount), 0) || 0;
       const totalSalesCount = salesData?.length || 0;
-      const totalApprovedExpenses = expensesData?.reduce((sum, expense) => sum + Number(expense.amount), 0) || 0;
+      const totalApprovedExpenses = claimsData?.reduce((sum, claim) => sum + Number(claim.amount), 0) || 0;
       const commissionRate = Number(newPerformance.commission_rate);
       const commissionEarned = totalSalesAmount * commissionRate;
       const bonusAmount = Number(newPerformance.bonus_amount);
