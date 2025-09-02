@@ -7,6 +7,9 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { Layout } from "@/components/layout/Layout";
 import Dashboard from "./pages/Dashboard";
 import ExpensesPage from "./pages/ExpensesPage";
+import RevenuePage from "./pages/RevenuePage";
+import ReportsPage from "./pages/ReportsPage";
+import ArchivePage from "./pages/ArchivePage";
 import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
 
@@ -59,7 +62,7 @@ const App = () => (
               path="/revenue" 
               element={
                 <ProtectedRoute>
-                  <Dashboard />
+                  <RevenuePage />
                 </ProtectedRoute>
               } 
             />
@@ -67,7 +70,7 @@ const App = () => (
               path="/reports" 
               element={
                 <ProtectedRoute>
-                  <Dashboard />
+                  <ReportsPage />
                 </ProtectedRoute>
               } 
             />
@@ -75,7 +78,7 @@ const App = () => (
               path="/archive" 
               element={
                 <ProtectedRoute>
-                  <Dashboard />
+                  <ArchivePage />
                 </ProtectedRoute>
               } 
             />

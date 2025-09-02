@@ -15,7 +15,7 @@ interface FinancialData {
 }
 
 const Dashboard = () => {
-  const { userProfile } = useAuth();
+  const { userProfile, user } = useAuth();
   const [financialData, setFinancialData] = useState<FinancialData>({
     totalRevenue: 0,
     totalExpenses: 0,

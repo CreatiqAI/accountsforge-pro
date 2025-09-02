@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Plus, Filter, Eye, Check, X, Upload } from 'lucide-react';
+import { Plus, Filter, Eye, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,12 +11,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
-interface Expense {
+interface Revenue {
   id: string;
   amount: number;
-  description: string;
-  expense_date: string;
-  status: 'pending' | 'approved' | 'rejected';
+  customer_name: string;
+  invoice_number?: string;
+  revenue_date: string;
   proof_url?: string;
   profiles?: {
     full_name: string;
@@ -25,38 +24,39 @@ interface Expense {
   };
 }
 
-const ExpensesPage = () => {
+const RevenuePage = () => {
   const { userProfile, user } = useAuth();
   const { toast } = useToast();
-  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [revenues, setRevenues] = useState<Revenue[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [newExpense, setNewExpense] = useState({
+  const [newRevenue, setNewRevenue] = useState({
     amount: '',
-    description: '',
-    expense_date: new Date().toISOString().split('T')[0],
+    customer_name: '',
+    invoice_number: '',
+    revenue_date: new Date().toISOString().split('T')[0],
   });
 
   useEffect(() => {
-    fetchExpenses();
+    fetchRevenues();
   }, []);
 
-  const fetchExpenses = async () => {
+  const fetchRevenues = async () => {
     try {
       let query = supabase
-        .from('expenses')
+        .from('revenues')
         .select(`
           id,
           amount,
-          description,
-          expense_date,
-          status,
+          customer_name,
+          invoice_number,
+          revenue_date,
           proof_url,
           user_id
         `)
-        .order('expense_date', { ascending: false });
+        .order('revenue_date', { ascending: false });
 
-      // Non-admins can only see their own expenses
+      // Non-admins can only see their own revenues
       if (userProfile?.role !== 'admin') {
         query = query.eq('user_id', user?.id);
       }
@@ -64,12 +64,12 @@ const ExpensesPage = () => {
       const { data, error } = await query;
       
       if (error) throw error;
-      setExpenses((data || []) as Expense[]);
+      setRevenues((data || []) as Revenue[]);
     } catch (error) {
-      console.error('Error fetching expenses:', error);
+      console.error('Error fetching revenues:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch expenses",
+        description: "Failed to fetch revenues",
         variant: "destructive"
       });
     } finally {
@@ -77,16 +77,17 @@ const ExpensesPage = () => {
     }
   };
 
-  const handleAddExpense = async (e: React.FormEvent) => {
+  const handleAddRevenue = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
       const { error } = await supabase
-        .from('expenses')
+        .from('revenues')
         .insert({
-          amount: parseFloat(newExpense.amount),
-          description: newExpense.description,
-          expense_date: newExpense.expense_date,
+          amount: parseFloat(newRevenue.amount),
+          customer_name: newRevenue.customer_name,
+          invoice_number: newRevenue.invoice_number || null,
+          revenue_date: newRevenue.revenue_date,
           user_id: user?.id
         });
 
@@ -94,59 +95,24 @@ const ExpensesPage = () => {
 
       toast({
         title: "Success",
-        description: "Expense added successfully"
+        description: "Revenue added successfully"
       });
 
-      setNewExpense({
+      setNewRevenue({
         amount: '',
-        description: '',
-        expense_date: new Date().toISOString().split('T')[0],
+        customer_name: '',
+        invoice_number: '',
+        revenue_date: new Date().toISOString().split('T')[0],
       });
       setIsAddDialogOpen(false);
-      fetchExpenses();
+      fetchRevenues();
     } catch (error) {
-      console.error('Error adding expense:', error);
+      console.error('Error adding revenue:', error);
       toast({
         title: "Error",
-        description: "Failed to add expense",
+        description: "Failed to add revenue",
         variant: "destructive"
       });
-    }
-  };
-
-  const handleStatusUpdate = async (expenseId: string, status: 'approved' | 'rejected') => {
-    try {
-      const { error } = await supabase
-        .from('expenses')
-        .update({ status })
-        .eq('id', expenseId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: `Expense ${status} successfully`
-      });
-
-      fetchExpenses();
-    } catch (error) {
-      console.error('Error updating expense status:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update expense status",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return <Badge className="bg-success text-success-foreground">Approved</Badge>;
-      case 'rejected':
-        return <Badge variant="destructive">Rejected</Badge>;
-      default:
-        return <Badge className="bg-warning text-warning-foreground">Pending</Badge>;
     }
   };
 
@@ -179,9 +145,9 @@ const ExpensesPage = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Expenses</h1>
+          <h1 className="text-3xl font-bold text-foreground">Revenue</h1>
           <p className="text-muted-foreground">
-            Manage and track expense entries
+            Manage and track revenue entries
           </p>
         </div>
         <div className="flex gap-2">
@@ -193,17 +159,17 @@ const ExpensesPage = () => {
             <DialogTrigger asChild>
               <Button className="bg-primary hover:bg-primary-dark">
                 <Plus className="h-4 w-4 mr-2" />
-                Add Expense
+                Add Revenue
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Add New Expense</DialogTitle>
+                <DialogTitle>Add New Revenue</DialogTitle>
                 <DialogDescription>
-                  Enter the details for your new expense entry.
+                  Enter the details for your new revenue entry.
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleAddExpense} className="space-y-4">
+              <form onSubmit={handleAddRevenue} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="amount">Amount</Label>
                   <Input
@@ -211,33 +177,42 @@ const ExpensesPage = () => {
                     type="number"
                     step="0.01"
                     placeholder="0.00"
-                    value={newExpense.amount}
-                    onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })}
+                    value={newRevenue.amount}
+                    onChange={(e) => setNewRevenue({ ...newRevenue, amount: e.target.value })}
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Enter expense description..."
-                    value={newExpense.description}
-                    onChange={(e) => setNewExpense({ ...newExpense, description: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="expense_date">Date</Label>
+                  <Label htmlFor="customer_name">Customer Name</Label>
                   <Input
-                    id="expense_date"
-                    type="date"
-                    value={newExpense.expense_date}
-                    onChange={(e) => setNewExpense({ ...newExpense, expense_date: e.target.value })}
+                    id="customer_name"
+                    placeholder="Enter customer name..."
+                    value={newRevenue.customer_name}
+                    onChange={(e) => setNewRevenue({ ...newRevenue, customer_name: e.target.value })}
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Proof (Optional)</Label>
+                  <Label htmlFor="invoice_number">Invoice Number (Optional)</Label>
+                  <Input
+                    id="invoice_number"
+                    placeholder="INV-001"
+                    value={newRevenue.invoice_number}
+                    onChange={(e) => setNewRevenue({ ...newRevenue, invoice_number: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="revenue_date">Date</Label>
+                  <Input
+                    id="revenue_date"
+                    type="date"
+                    value={newRevenue.revenue_date}
+                    onChange={(e) => setNewRevenue({ ...newRevenue, revenue_date: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Invoice Proof (Optional)</Label>
                   <div className="border-2 border-dashed border-border rounded-lg p-4 text-center">
                     <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
                     <p className="text-sm text-muted-foreground">
@@ -246,7 +221,7 @@ const ExpensesPage = () => {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button type="submit" className="flex-1">Add Expense</Button>
+                  <Button type="submit" className="flex-1">Add Revenue</Button>
                   <Button 
                     type="button" 
                     variant="outline" 
@@ -261,23 +236,23 @@ const ExpensesPage = () => {
         </div>
       </div>
 
-      {/* Expenses Table */}
+      {/* Revenue Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Expense Entries</CardTitle>
+          <CardTitle>Revenue Entries</CardTitle>
           <CardDescription>
-            {expenses.length} total expenses
+            {revenues.length} total revenue entries
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {expenses.length === 0 ? (
+          {revenues.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">No expenses found</p>
+              <p className="text-muted-foreground">No revenue entries found</p>
               <Button 
                 className="mt-4" 
                 onClick={() => setIsAddDialogOpen(true)}
               >
-                Add Your First Expense
+                Add Your First Revenue Entry
               </Button>
             </div>
           ) : (
@@ -286,60 +261,42 @@ const ExpensesPage = () => {
                 <TableRow>
                   <TableHead>Date</TableHead>
                   <TableHead>Amount</TableHead>
-                  <TableHead>Description</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Invoice #</TableHead>
                   {userProfile?.role === 'admin' && <TableHead>Salesman</TableHead>}
-                  <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {expenses.map((expense) => (
-                  <TableRow key={expense.id}>
+                {revenues.map((revenue) => (
+                  <TableRow key={revenue.id}>
                     <TableCell>
-                      {new Date(expense.expense_date).toLocaleDateString()}
+                      {new Date(revenue.revenue_date).toLocaleDateString()}
                     </TableCell>
-                    <TableCell className="font-medium">
-                      {formatCurrency(expense.amount)}
+                    <TableCell className="font-medium text-success">
+                      {formatCurrency(revenue.amount)}
                     </TableCell>
-                    <TableCell className="max-w-xs truncate">
-                      {expense.description}
+                    <TableCell>
+                      {revenue.customer_name}
+                    </TableCell>
+                    <TableCell>
+                      {revenue.invoice_number || '-'}
                     </TableCell>
                     {userProfile?.role === 'admin' && (
                       <TableCell>
                         <div>
-                          <p className="font-medium">{expense.profiles?.full_name}</p>
+                          <p className="font-medium">{revenue.profiles?.full_name || 'N/A'}</p>
                           <p className="text-xs text-muted-foreground">
-                            {expense.profiles?.phone_number}
+                            {revenue.profiles?.phone_number || 'N/A'}
                           </p>
                         </div>
                       </TableCell>
                     )}
                     <TableCell>
-                      {getStatusBadge(expense.status)}
-                    </TableCell>
-                    <TableCell>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="sm">
                           <Eye className="h-4 w-4" />
                         </Button>
-                        {userProfile?.role === 'admin' && expense.status === 'pending' && (
-                          <>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => handleStatusUpdate(expense.id, 'approved')}
-                            >
-                              <Check className="h-4 w-4 text-success" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => handleStatusUpdate(expense.id, 'rejected')}
-                            >
-                              <X className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </>
-                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -353,4 +310,4 @@ const ExpensesPage = () => {
   );
 };
 
-export default ExpensesPage;
+export default RevenuePage;
