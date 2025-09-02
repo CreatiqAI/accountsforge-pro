@@ -12,6 +12,7 @@ import ReportsPage from "./pages/ReportsPage";
 import PerformancePage from "./pages/PerformancePage";
 import ClaimsPage from "./pages/ClaimsPage";
 import ArchivePage from "./pages/ArchivePage";
+import UserManagementPage from "./pages/UserManagementPage";
 import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
 
@@ -89,6 +90,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <ClaimsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/users" 
+              element={
+                <ProtectedRoute>
+                  <UserManagementPage />
                 </ProtectedRoute>
               } 
             />

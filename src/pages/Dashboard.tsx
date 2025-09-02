@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, DollarSign, Calculator, Plus } from 'lucide-react';
-import { StatsCard } from '@/components/dashboard/StatsCard';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Plus, TrendingUp, TrendingDown, DollarSign, Calculator } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { StatsCard } from '@/components/dashboard/StatsCard';
+import { RevenueExpenseChart, ProfitChart } from '@/components/charts/FinancialCharts';
 
 interface FinancialData {
   totalRevenue: number;
@@ -12,6 +13,14 @@ interface FinancialData {
   netProfit: number;
   monthlyRevenue: number;
   monthlyExpenses: number;
+  monthlyProfit: number;
+}
+
+interface ChartData {
+  month: string;
+  revenue: number;
+  expenses: number;
+  profit: number;
 }
 
 const Dashboard = () => {
@@ -22,12 +31,15 @@ const Dashboard = () => {
     netProfit: 0,
     monthlyRevenue: 0,
     monthlyExpenses: 0,
+    monthlyProfit: 0
   });
+  const [chartData, setChartData] = useState<ChartData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchFinancialData();
-  }, []);
+    fetchChartData();
+  }, [user, userProfile]);
 
   const fetchFinancialData = async () => {
     try {
@@ -67,12 +79,68 @@ const Dashboard = () => {
           netProfit: totalRevenue - totalExpenses,
           monthlyRevenue,
           monthlyExpenses,
+          monthlyProfit: monthlyRevenue - monthlyExpenses
         });
       }
     } catch (error) {
       console.error('Error fetching financial data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchChartData = async () => {
+    try {
+      const currentDate = new Date();
+      const last6Months = [];
+      
+      for (let i = 5; i >= 0; i--) {
+        const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+        const monthStart = date.toISOString().split('T')[0];
+        const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0).toISOString().split('T')[0];
+        
+        // Get revenues for this month
+        let revenueQuery = supabase
+          .from('revenues')
+          .select('amount')
+          .gte('revenue_date', monthStart)
+          .lte('revenue_date', monthEnd);
+          
+        if (userProfile?.role !== 'admin') {
+          revenueQuery = revenueQuery.eq('user_id', user?.id);
+        }
+        
+        const { data: revenueData } = await revenueQuery;
+        
+        // Get expenses for this month
+        let expenseQuery = supabase
+          .from('expenses')
+          .select('amount')
+          .gte('expense_date', monthStart)
+          .lte('expense_date', monthEnd);
+          
+        if (userProfile?.role !== 'admin') {
+          expenseQuery = expenseQuery.eq('user_id', user?.id);
+        } else {
+          expenseQuery = expenseQuery.eq('status', 'approved');
+        }
+        
+        const { data: expenseData } = await expenseQuery;
+        
+        const monthRevenue = revenueData?.reduce((sum, r) => sum + Number(r.amount), 0) || 0;
+        const monthExpenses = expenseData?.reduce((sum, e) => sum + Number(e.amount), 0) || 0;
+        
+        last6Months.push({
+          month: date.toLocaleDateString('en-US', { month: 'short' }),
+          revenue: monthRevenue,
+          expenses: monthExpenses,
+          profit: monthRevenue - monthExpenses
+        });
+      }
+      
+      setChartData(last6Months);
+    } catch (error) {
+      console.error('Error fetching chart data:', error);
     }
   };
 
@@ -107,51 +175,116 @@ const Dashboard = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+          <h1 className="text-3xl font-bold text-foreground">
+            {userProfile?.role === 'admin' ? 'Admin Dashboard' : 'My Dashboard'}
+          </h1>
           <p className="text-muted-foreground">
-            Welcome back, {userProfile?.full_name}
+            {userProfile?.role === 'admin' ? 'Company Overview' : 'My Financial Summary'}
           </p>
         </div>
         <div className="flex gap-2">
-          <Button className="bg-primary hover:bg-primary-dark">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Entry
+          <Button variant="outline" asChild>
+            <a href="/expenses">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Expense
+            </a>
+          </Button>
+          <Button className="bg-primary hover:bg-primary-dark" asChild>
+            <a href="/revenue">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Revenue
+            </a>
           </Button>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatsCard
-          title="Total Revenue"
-          value={formatCurrency(financialData.totalRevenue)}
-          change={`$${financialData.monthlyRevenue.toFixed(2)} this month`}
-          changeType="positive"
-          icon={TrendingUp}
-        />
-        <StatsCard
-          title="Total Expenses"
-          value={formatCurrency(financialData.totalExpenses)}
-          change={`$${financialData.monthlyExpenses.toFixed(2)} this month`}
-          changeType="negative"
-          icon={TrendingDown}
-        />
-        <StatsCard
-          title="Net Profit"
-          value={formatCurrency(financialData.netProfit)}
-          changeType={financialData.netProfit >= 0 ? 'positive' : 'negative'}
-          icon={DollarSign}
-        />
-        <StatsCard
-          title="Monthly P&L"
-          value={formatCurrency(financialData.monthlyRevenue - financialData.monthlyExpenses)}
-          changeType={
-            (financialData.monthlyRevenue - financialData.monthlyExpenses) >= 0 
-              ? 'positive' 
-              : 'negative'
-          }
-          icon={Calculator}
-        />
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-success">{formatCurrency(financialData.totalRevenue)}</div>
+            <p className="text-xs text-muted-foreground">
+              +{formatCurrency(financialData.monthlyRevenue)} this month
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+            <TrendingDown className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-destructive">{formatCurrency(financialData.totalExpenses)}</div>
+            <p className="text-xs text-muted-foreground">
+              +{formatCurrency(financialData.monthlyExpenses)} this month
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${financialData.netProfit >= 0 ? 'text-success' : 'text-destructive'}`}>
+              {formatCurrency(financialData.netProfit)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {financialData.monthlyProfit >= 0 ? '+' : ''}{formatCurrency(financialData.monthlyProfit)} this month
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Profit Margin</CardTitle>
+            <Calculator className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {financialData.totalRevenue > 0 
+                ? `${((financialData.netProfit / financialData.totalRevenue) * 100).toFixed(1)}%`
+                : '0%'
+              }
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Revenue to profit ratio
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Revenue vs Expenses</CardTitle>
+            <CardDescription>
+              Last 6 months comparison
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <RevenueExpenseChart data={chartData} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Net Profit Trend</CardTitle>
+            <CardDescription>
+              Monthly profit over time
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ProfitChart data={chartData} />
+          </CardContent>
+        </Card>
       </div>
 
       {/* Quick Actions */}
@@ -168,12 +301,14 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-success-light rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-success/10 rounded-lg border border-success/20">
                 <div>
                   <p className="font-medium">No recent entries</p>
                   <p className="text-sm text-muted-foreground">Add your first revenue entry</p>
                 </div>
-                <Button variant="outline" size="sm">Add Revenue</Button>
+                <Button variant="outline" size="sm" asChild>
+                  <a href="/revenue">Add Revenue</a>
+                </Button>
               </div>
             </div>
           </CardContent>
@@ -191,12 +326,14 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-warning-light rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-warning/10 rounded-lg border border-warning/20">
                 <div>
                   <p className="font-medium">No recent entries</p>
                   <p className="text-sm text-muted-foreground">Add your first expense entry</p>
                 </div>
-                <Button variant="outline" size="sm">Add Expense</Button>
+                <Button variant="outline" size="sm" asChild>
+                  <a href="/expenses">Add Expense</a>
+                </Button>
               </div>
             </div>
           </CardContent>

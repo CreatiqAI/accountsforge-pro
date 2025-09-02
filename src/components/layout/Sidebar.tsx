@@ -6,6 +6,7 @@ import {
   FileText, 
   Archive,
   Calculator,
+  Users,
   LogOut
 } from 'lucide-react';
 import {
@@ -33,6 +34,11 @@ const navigation = [
   { title: 'Performance', url: '/performance', icon: TrendingUp },
   { title: 'Claims', url: '/claims', icon: FileText },
   { title: 'Archive', url: '/archive', icon: Archive },
+];
+
+// Admin-only navigation items
+const adminNavigation = [
+  { title: 'User Management', url: '/users', icon: Users },
 ];
 
 export function AppSidebar() {
@@ -90,6 +96,31 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Admin-only navigation */}
+        {userProfile?.role === 'admin' && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Administration</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {adminNavigation.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink 
+                        to={item.url} 
+                        end 
+                        className={getNavCls({ isActive: isActive(item.url) })}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        {!collapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-border">
