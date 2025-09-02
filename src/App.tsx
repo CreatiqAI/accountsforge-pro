@@ -9,6 +9,8 @@ import Dashboard from "./pages/Dashboard";
 import ExpensesPage from "./pages/ExpensesPage";
 import RevenuePage from "./pages/RevenuePage";
 import ReportsPage from "./pages/ReportsPage";
+import PerformancePage from "./pages/PerformancePage";
+import ClaimsPage from "./pages/ClaimsPage";
 import ArchivePage from "./pages/ArchivePage";
 import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
@@ -71,6 +73,22 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <ReportsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/performance" 
+              element={
+                <ProtectedRoute>
+                  <PerformancePage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/claims" 
+              element={
+                <ProtectedRoute>
+                  <ClaimsPage />
                 </ProtectedRoute>
               } 
             />

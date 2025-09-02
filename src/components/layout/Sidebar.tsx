@@ -30,6 +30,8 @@ const navigation = [
   { title: 'Expenses', url: '/expenses', icon: Receipt },
   { title: 'Revenue', url: '/revenue', icon: TrendingUp },
   { title: 'P&L Statement', url: '/reports', icon: FileText },
+  { title: 'Performance', url: '/performance', icon: TrendingUp },
+  { title: 'Claims', url: '/claims', icon: FileText },
   { title: 'Archive', url: '/archive', icon: Archive },
 ];
 

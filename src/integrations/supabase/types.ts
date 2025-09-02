@@ -14,6 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      claims: {
+        Row: {
+          amount: number
+          claim_type: string
+          created_at: string
+          description: string
+          expense_id: string | null
+          id: string
+          notes: string | null
+          paid_date: string | null
+          payment_method: string | null
+          payment_reference: string | null
+          performance_id: string | null
+          reviewed_by: string | null
+          reviewed_date: string | null
+          status: string
+          submitted_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          claim_type: string
+          created_at?: string
+          description: string
+          expense_id?: string | null
+          id?: string
+          notes?: string | null
+          paid_date?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          performance_id?: string | null
+          reviewed_by?: string | null
+          reviewed_date?: string | null
+          status?: string
+          submitted_date?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          claim_type?: string
+          created_at?: string
+          description?: string
+          expense_id?: string | null
+          id?: string
+          notes?: string | null
+          paid_date?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          performance_id?: string | null
+          reviewed_by?: string | null
+          reviewed_date?: string | null
+          status?: string
+          submitted_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       expenses: {
         Row: {
           amount: number
@@ -113,6 +173,63 @@ export type Database = {
           revenue_date?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      salesman_performance: {
+        Row: {
+          bonus_amount: number | null
+          commission_earned: number | null
+          commission_rate: number | null
+          created_at: string
+          id: string
+          month: number
+          notes: string | null
+          payment_date: string | null
+          payment_status: string
+          total_approved_expenses: number
+          total_payout: number | null
+          total_sales_amount: number
+          total_sales_count: number
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          bonus_amount?: number | null
+          commission_earned?: number | null
+          commission_rate?: number | null
+          created_at?: string
+          id?: string
+          month: number
+          notes?: string | null
+          payment_date?: string | null
+          payment_status?: string
+          total_approved_expenses?: number
+          total_payout?: number | null
+          total_sales_amount?: number
+          total_sales_count?: number
+          updated_at?: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          bonus_amount?: number | null
+          commission_earned?: number | null
+          commission_rate?: number | null
+          created_at?: string
+          id?: string
+          month?: number
+          notes?: string | null
+          payment_date?: string | null
+          payment_status?: string
+          total_approved_expenses?: number
+          total_payout?: number | null
+          total_sales_amount?: number
+          total_sales_count?: number
+          updated_at?: string
+          user_id?: string
+          year?: number
         }
         Relationships: []
       }
