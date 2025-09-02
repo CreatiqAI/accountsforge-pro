@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Filter, Eye, Upload } from 'lucide-react';
+import { Plus, Filter, Eye, Upload, Check, X, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -18,6 +19,8 @@ interface Revenue {
   invoice_number?: string;
   revenue_date: string;
   proof_url?: string;
+  status: string;
+  user_id: string;
   profiles?: {
     full_name: string;
     phone_number: string;
@@ -30,6 +33,8 @@ const RevenuePage = () => {
   const [revenues, setRevenues] = useState<Revenue[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [selectedRevenue, setSelectedRevenue] = useState<Revenue | null>(null);
   const [newRevenue, setNewRevenue] = useState({
     amount: '',
     customer_name: '',
@@ -52,7 +57,9 @@ const RevenuePage = () => {
           invoice_number,
           revenue_date,
           proof_url,
-          user_id
+          status,
+          user_id,
+          profiles(full_name, phone_number)
         `)
         .order('revenue_date', { ascending: false });
 
@@ -114,6 +121,76 @@ const RevenuePage = () => {
         variant: "destructive"
       });
     }
+  };
+
+  const handleUpdateStatus = async (revenueId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('revenues')
+        .update({ status: newStatus })
+        .eq('id', revenueId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Revenue ${newStatus} successfully`
+      });
+
+      fetchRevenues();
+    } catch (error) {
+      console.error('Error updating revenue status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update revenue status",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteRevenue = async (revenueId: string) => {
+    if (!confirm('Are you sure you want to delete this revenue entry?')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('revenues')
+        .delete()
+        .eq('id', revenueId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Revenue deleted successfully"
+      });
+
+      fetchRevenues();
+    } catch (error) {
+      console.error('Error deleting revenue:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete revenue",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      pending: { label: 'Pending', variant: 'secondary' as const },
+      approved: { label: 'Approved', variant: 'default' as const },
+      rejected: { label: 'Rejected', variant: 'destructive' as const }
+    };
+    
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+    return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
+
+  const handleViewRevenue = (revenue: Revenue) => {
+    setSelectedRevenue(revenue);
+    setIsViewDialogOpen(true);
   };
 
   const formatCurrency = (amount: number) => {
@@ -263,6 +340,7 @@ const RevenuePage = () => {
                   <TableHead>Amount</TableHead>
                   <TableHead>Customer</TableHead>
                   <TableHead>Invoice #</TableHead>
+                  <TableHead>Status</TableHead>
                   {userProfile?.role === 'admin' && <TableHead>Salesman</TableHead>}
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -282,6 +360,9 @@ const RevenuePage = () => {
                     <TableCell>
                       {revenue.invoice_number || '-'}
                     </TableCell>
+                    <TableCell>
+                      {getStatusBadge(revenue.status)}
+                    </TableCell>
                     {userProfile?.role === 'admin' && (
                       <TableCell>
                         <div>
@@ -294,9 +375,43 @@ const RevenuePage = () => {
                     )}
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleViewRevenue(revenue)}
+                        >
                           <Eye className="h-4 w-4" />
                         </Button>
+                        {userProfile?.role === 'admin' && revenue.status === 'pending' && (
+                          <>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleUpdateStatus(revenue.id, 'approved')}
+                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                            >
+                              <Check className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleUpdateStatus(revenue.id, 'rejected')}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+                        {userProfile?.role === 'admin' && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleDeleteRevenue(revenue.id)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -306,6 +421,57 @@ const RevenuePage = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* View Revenue Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Revenue Details</DialogTitle>
+            <DialogDescription>
+              View complete revenue information
+            </DialogDescription>
+          </DialogHeader>
+          {selectedRevenue && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium">Amount</Label>
+                  <p className="text-lg font-semibold">{formatCurrency(selectedRevenue.amount)}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Date</Label>
+                  <p>{new Date(selectedRevenue.revenue_date).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Status</Label>
+                  <div className="mt-1">{getStatusBadge(selectedRevenue.status)}</div>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Invoice Number</Label>
+                  <p>{selectedRevenue.invoice_number || 'N/A'}</p>
+                </div>
+                {userProfile?.role === 'admin' && selectedRevenue.profiles && (
+                  <div className="col-span-2">
+                    <Label className="text-sm font-medium">Submitted by</Label>
+                    <p>{selectedRevenue.profiles.full_name}</p>
+                    <p className="text-sm text-muted-foreground">{selectedRevenue.profiles.phone_number}</p>
+                  </div>
+                )}
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Customer Name</Label>
+                <p className="mt-1 p-3 bg-muted rounded-md">{selectedRevenue.customer_name}</p>
+              </div>
+              {selectedRevenue.proof_url && (
+                <div>
+                  <Label className="text-sm font-medium">Invoice Proof</Label>
+                  <p className="text-sm text-muted-foreground mt-1">File attached</p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -165,6 +165,7 @@ export type Database = {
           invoice_number: string | null
           proof_url: string | null
           revenue_date: string
+          status: string
           updated_at: string
           user_id: string
         }
@@ -176,6 +177,7 @@ export type Database = {
           invoice_number?: string | null
           proof_url?: string | null
           revenue_date: string
+          status?: string
           updated_at?: string
           user_id: string
         }
@@ -187,6 +189,7 @@ export type Database = {
           invoice_number?: string | null
           proof_url?: string | null
           revenue_date?: string
+          status?: string
           updated_at?: string
           user_id?: string
         }
