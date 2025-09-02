@@ -128,22 +128,22 @@ export const FinancialCalendar = () => {
     const hasExpenses = activity && activity.expenses > 0;
     
     return (
-      <div className="relative w-full h-full min-h-[40px] p-2 flex items-center justify-center">
+      <div className="relative w-full h-full flex items-center justify-center">
         <div className="text-sm font-medium">{format(date, 'd')}</div>
         
         {/* Activity indicators */}
-        <div className="absolute bottom-1 right-1 flex gap-0.5">
+        <div className="absolute bottom-1 right-1 flex gap-1">
           {hasRevenue && (
-            <div className="w-2 h-2 bg-success rounded-full"></div>
+            <div className="w-1.5 h-1.5 bg-success rounded-full"></div>
           )}
           {hasExpenses && (
-            <div className="w-2 h-2 bg-destructive rounded-full"></div>
+            <div className="w-1.5 h-1.5 bg-destructive rounded-full"></div>
           )}
         </div>
         
         {/* Today indicator */}
-        {isToday(date) && (
-          <div className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full"></div>
+        {isToday(date) && !selectedDate && (
+          <div className="absolute top-1 right-1 w-1.5 h-1.5 bg-primary rounded-full"></div>
         )}
       </div>
     );
@@ -210,9 +210,9 @@ export const FinancialCalendar = () => {
         </Card>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        {/* Calendar View */}
-        <div className="space-y-4">
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Calendar View - Now takes more space */}
+        <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold flex items-center gap-2">
               <CalendarIcon className="h-5 w-5" />
@@ -220,7 +220,7 @@ export const FinancialCalendar = () => {
             </h3>
           </div>
           
-          <div className="border rounded-lg p-4">
+          <div className="border rounded-lg overflow-hidden">
             <Calendar
               mode="single"
               selected={selectedDate}
@@ -228,11 +228,38 @@ export const FinancialCalendar = () => {
               month={currentMonth}
               onMonthChange={setCurrentMonth}
               className="w-full"
+              classNames={{
+                months: "flex w-full",
+                month: "space-y-4 w-full",
+                caption: "flex justify-center pt-1 relative items-center",
+                caption_label: "text-sm font-medium",
+                nav: "space-x-1 flex items-center",
+                nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100",
+                nav_button_previous: "absolute left-1",
+                nav_button_next: "absolute right-1",
+                table: "w-full border-collapse space-y-1",
+                head_row: "flex w-full",
+                head_cell: "text-muted-foreground rounded-md w-full font-normal text-[0.8rem] flex-1 text-center",
+                row: "flex w-full mt-2",
+                cell: "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 flex-1",
+                day: "h-12 w-full p-0 font-normal hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
+                day_range_end: "day-range-end",
+                day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                day_today: "bg-accent text-accent-foreground",
+                day_outside: "text-muted-foreground opacity-50",
+                day_disabled: "text-muted-foreground opacity-50",
+                day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
+                day_hidden: "invisible",
+              }}
               components={{
                 Day: ({ date }) => (
                   <button 
-                    className={`w-full h-full min-h-[40px] text-left hover:bg-muted rounded transition-colors ${
-                      selectedDate && isSameDay(date, selectedDate) ? 'bg-primary/20 ring-2 ring-primary/30' : ''
+                    className={`w-full h-12 text-left hover:bg-accent rounded-md transition-colors relative ${
+                      selectedDate && isSameDay(date, selectedDate) 
+                        ? 'bg-primary text-primary-foreground' 
+                        : isToday(date)
+                        ? 'bg-accent text-accent-foreground'
+                        : ''
                     }`}
                     onClick={() => setSelectedDate(date)}
                   >
@@ -244,7 +271,7 @@ export const FinancialCalendar = () => {
           </div>
           
           {/* Legend */}
-          <div className="flex flex-wrap gap-4 text-sm">
+          <div className="flex justify-center gap-6 text-sm bg-muted/30 rounded-lg p-3">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-success"></div>
               <span>Revenue</span>
@@ -260,7 +287,7 @@ export const FinancialCalendar = () => {
           </div>
         </div>
 
-        {/* Selected Date Details */}
+        {/* Selected Date Details - Smaller sidebar */}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">
             {selectedDate ? format(selectedDate, 'EEEE, MMMM d, yyyy') : 'Select a date'}
