@@ -31,6 +31,8 @@ const ExpensesPage = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [newExpense, setNewExpense] = useState({
     amount: '',
     description: '',
@@ -184,6 +186,11 @@ const ExpensesPage = () => {
       style: 'currency',
       currency: 'USD'
     }).format(amount);
+  };
+
+  const handleViewExpense = (expense: Expense) => {
+    setSelectedExpense(expense);
+    setIsViewDialogOpen(true);
   };
 
   if (loading) {
@@ -348,7 +355,11 @@ const ExpensesPage = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleViewExpense(expense)}
+                        >
                           <Eye className="h-4 w-4" />
                         </Button>
                         {userProfile?.role === 'admin' && expense.status === 'pending' && (
@@ -387,6 +398,53 @@ const ExpensesPage = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* View Expense Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Expense Details</DialogTitle>
+            <DialogDescription>
+              View complete expense information
+            </DialogDescription>
+          </DialogHeader>
+          {selectedExpense && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium">Amount</Label>
+                  <p className="text-lg font-semibold">{formatCurrency(selectedExpense.amount)}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Date</Label>
+                  <p>{new Date(selectedExpense.expense_date).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Status</Label>
+                  <div className="mt-1">{getStatusBadge(selectedExpense.status)}</div>
+                </div>
+                {userProfile?.role === 'admin' && selectedExpense.profiles && (
+                  <div>
+                    <Label className="text-sm font-medium">Submitted by</Label>
+                    <p>{selectedExpense.profiles.full_name}</p>
+                    <p className="text-sm text-muted-foreground">{selectedExpense.profiles.phone_number}</p>
+                  </div>
+                )}
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Description</Label>
+                <p className="mt-1 p-3 bg-muted rounded-md">{selectedExpense.description}</p>
+              </div>
+              {selectedExpense.proof_url && (
+                <div>
+                  <Label className="text-sm font-medium">Proof/Receipt</Label>
+                  <p className="text-sm text-muted-foreground mt-1">File attached</p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
