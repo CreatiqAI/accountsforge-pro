@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Filter, Eye, Check, X, DollarSign, Calendar, FileText } from 'lucide-react';
+import { Plus, Filter, Eye, Check, X, DollarSign, Calendar, FileText, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -163,6 +163,31 @@ const ClaimsPage = () => {
       toast({
         title: "Error",
         description: "Failed to update claim status",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteClaim = async (claimId: string) => {
+    try {
+      const { error } = await supabase
+        .from('claims')
+        .delete()
+        .eq('id', claimId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Claim deleted successfully"
+      });
+
+      fetchClaims();
+    } catch (error) {
+      console.error('Error deleting claim:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete claim",
         variant: "destructive"
       });
     }
@@ -515,6 +540,17 @@ const ClaimsPage = () => {
                             onClick={() => handleStatusUpdate(claim.id, 'paid', { method: 'bank_transfer', reference: 'TXN-' + Date.now() })}
                           >
                             Mark Paid
+                          </Button>
+                        )}
+                        {((userProfile?.role === 'admin') || 
+                          (claim.user_id === user?.id && claim.status === 'pending')) && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleDeleteClaim(claim.id)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         )}
                       </div>
