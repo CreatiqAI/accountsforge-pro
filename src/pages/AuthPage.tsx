@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calculator, Phone, Lock, User } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calculator, Phone, Lock, User, UserCheck } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
@@ -22,7 +23,8 @@ const AuthPage = () => {
   const [signUpData, setSignUpData] = useState({
     phone: '',
     password: '',
-    fullName: ''
+    fullName: '',
+    role: 'salesman'
   });
 
   // Redirect if already authenticated
@@ -56,7 +58,7 @@ const AuthPage = () => {
     e.preventDefault();
     setLoading(true);
     
-    const { error } = await signUp(signUpData.phone, signUpData.password, signUpData.fullName);
+    const { error } = await signUp(signUpData.phone, signUpData.password, signUpData.fullName, signUpData.role);
     
     if (error) {
       toast({
@@ -70,7 +72,7 @@ const AuthPage = () => {
         description: "Your account has been created successfully. Please sign in."
       });
       // Switch to sign in tab
-      setSignUpData({ phone: '', password: '', fullName: '' });
+      setSignUpData({ phone: '', password: '', fullName: '', role: 'salesman' });
     }
     
     setLoading(false);
@@ -177,6 +179,28 @@ const AuthPage = () => {
                         required
                       />
                     </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-role">Role</Label>
+                    <div className="relative">
+                      <UserCheck className="absolute left-3 top-3 h-4 w-4 text-muted-foreground z-10" />
+                      <Select 
+                        value={signUpData.role} 
+                        onValueChange={(value) => setSignUpData({ ...signUpData, role: value })}
+                      >
+                        <SelectTrigger className="pl-9">
+                          <SelectValue placeholder="Select your role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="salesman">Salesman</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Choose Admin to access all features, or Salesman for standard access
+                    </p>
                   </div>
                   
                   <div className="space-y-2">
