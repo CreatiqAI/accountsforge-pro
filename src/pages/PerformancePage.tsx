@@ -40,9 +40,9 @@ const PerformancePage = () => {
   const [performances, setPerformances] = useState<PerformanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState<string>(new Date().getMonth() + 1 + '');
-  const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear() + '');
-  const [selectedUserId, setSelectedUserId] = useState<string>('');
+  const [selectedMonth, setSelectedMonth] = useState<string>('all');
+  const [selectedYear, setSelectedYear] = useState<string>('all');
+  const [selectedUserId, setSelectedUserId] = useState<string>('all');
   const [users, setUsers] = useState<any[]>([]);
   const [newPerformance, setNewPerformance] = useState({
     user_id: '',
@@ -83,19 +83,19 @@ const PerformancePage = () => {
         .from('salesman_performance')
         .select(`
           *,
-          profiles!inner(full_name, phone_number)
+          profiles(full_name, phone_number)
         `)
         .order('year', { ascending: false })
         .order('month', { ascending: false });
 
       // Apply filters
-      if (selectedMonth) {
+      if (selectedMonth && selectedMonth !== 'all') {
         query = query.eq('month', parseInt(selectedMonth));
       }
-      if (selectedYear) {
+      if (selectedYear && selectedYear !== 'all') {
         query = query.eq('year', parseInt(selectedYear));
       }
-      if (selectedUserId) {
+      if (selectedUserId && selectedUserId !== 'all') {
         query = query.eq('user_id', selectedUserId);
       }
 
@@ -478,7 +478,7 @@ const PerformancePage = () => {
                   <SelectValue placeholder="All months" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All months</SelectItem>
+                  <SelectItem value="all">All months</SelectItem>
                   {Array.from({ length: 12 }, (_, i) => (
                     <SelectItem key={i + 1} value={(i + 1).toString()}>
                       {getMonthName(i + 1)}
@@ -494,7 +494,7 @@ const PerformancePage = () => {
                   <SelectValue placeholder="All years" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All years</SelectItem>
+                  <SelectItem value="all">All years</SelectItem>
                   {Array.from({ length: 5 }, (_, i) => {
                     const year = currentYear - i;
                     return (
@@ -514,7 +514,7 @@ const PerformancePage = () => {
                     <SelectValue placeholder="All salesmen" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All salesmen</SelectItem>
+                    <SelectItem value="all">All salesmen</SelectItem>
                     {users.map((user) => (
                       <SelectItem key={user.user_id} value={user.user_id}>
                         {user.full_name}
@@ -528,9 +528,9 @@ const PerformancePage = () => {
               <Button 
                 variant="outline" 
                 onClick={() => {
-                  setSelectedMonth('');
-                  setSelectedYear('');
-                  setSelectedUserId('');
+                  setSelectedMonth('all');
+                  setSelectedYear('all');
+                  setSelectedUserId('all');
                 }}
               >
                 Clear Filters

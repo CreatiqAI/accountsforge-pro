@@ -40,8 +40,8 @@ const ClaimsPage = () => {
   const [claims, setClaims] = useState<Claim[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<string>('');
-  const [typeFilter, setTypeFilter] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
   const [newClaim, setNewClaim] = useState({
     claim_type: 'expense_reimbursement' as const,
     amount: '',
@@ -59,15 +59,15 @@ const ClaimsPage = () => {
         .from('claims')
         .select(`
           *,
-          profiles!inner(full_name, phone_number)
+          profiles(full_name, phone_number)
         `)
         .order('submitted_date', { ascending: false });
 
       // Apply filters
-      if (statusFilter) {
+      if (statusFilter && statusFilter !== 'all') {
         query = query.eq('status', statusFilter);
       }
-      if (typeFilter) {
+      if (typeFilter && typeFilter !== 'all') {
         query = query.eq('claim_type', typeFilter);
       }
 
@@ -386,7 +386,7 @@ const ClaimsPage = () => {
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All statuses</SelectItem>
+                  <SelectItem value="all">All statuses</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="approved">Approved</SelectItem>
                   <SelectItem value="rejected">Rejected</SelectItem>
@@ -401,7 +401,7 @@ const ClaimsPage = () => {
                   <SelectValue placeholder="All types" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All types</SelectItem>
+                  <SelectItem value="all">All types</SelectItem>
                   <SelectItem value="expense_reimbursement">Expense Reimbursement</SelectItem>
                   <SelectItem value="commission">Commission</SelectItem>
                   <SelectItem value="bonus">Bonus</SelectItem>
@@ -413,8 +413,8 @@ const ClaimsPage = () => {
               <Button 
                 variant="outline" 
                 onClick={() => {
-                  setStatusFilter('');
-                  setTypeFilter('');
+                  setStatusFilter('all');
+                  setTypeFilter('all');
                 }}
               >
                 Clear Filters
