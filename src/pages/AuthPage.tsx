@@ -16,16 +16,50 @@ const AuthPage = () => {
   const [loading, setLoading] = useState(false);
   
   const [signInData, setSignInData] = useState({
-    phone: '',
+    phone: '+60',
     password: ''
   });
   
   const [signUpData, setSignUpData] = useState({
-    phone: '',
+    phone: '+60',
     password: '',
     fullName: '',
     role: 'salesman'
   });
+
+  // Format phone number to ensure +60 prefix
+  const formatPhoneNumber = (value: string) => {
+    // Remove all non-digits
+    const digitsOnly = value.replace(/\D/g, '');
+    
+    // If it starts with 60, add the + prefix
+    if (digitsOnly.startsWith('60')) {
+      return '+' + digitsOnly;
+    }
+    
+    // If it starts with 0, replace with +60
+    if (digitsOnly.startsWith('0')) {
+      return '+60' + digitsOnly.substring(1);
+    }
+    
+    // If it's just digits without 60 prefix, add +60
+    if (digitsOnly.length > 0 && !digitsOnly.startsWith('60')) {
+      return '+60' + digitsOnly;
+    }
+    
+    // Default to +60
+    return '+60';
+  };
+
+  const handlePhoneChange = (value: string, isSignUp: boolean = false) => {
+    const formatted = formatPhoneNumber(value);
+    
+    if (isSignUp) {
+      setSignUpData({ ...signUpData, phone: formatted });
+    } else {
+      setSignInData({ ...signInData, phone: formatted });
+    }
+  };
 
   // Redirect if already authenticated
   if (user) {
@@ -72,7 +106,8 @@ const AuthPage = () => {
         description: "Your account has been created successfully. Please sign in."
       });
       // Switch to sign in tab
-      setSignUpData({ phone: '', password: '', fullName: '', role: 'salesman' });
+      // Reset form but keep +60 prefix
+      setSignUpData({ phone: '+60', password: '', fullName: '', role: 'salesman' });
     }
     
     setLoading(false);
@@ -105,21 +140,25 @@ const AuthPage = () => {
               
               <TabsContent value="signin">
                 <form onSubmit={handleSignIn} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-phone">Phone Number</Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="signin-phone"
-                        type="tel"
-                        placeholder="+1234567890"
-                        value={signInData.phone}
-                        onChange={(e) => setSignInData({ ...signInData, phone: e.target.value })}
-                        className="pl-9"
-                        required
-                      />
-                    </div>
-                  </div>
+                   <div className="space-y-2">
+                     <Label htmlFor="signin-phone">Phone Number</Label>
+                     <div className="relative">
+                       <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                       <Input
+                         id="signin-phone"
+                         type="tel"
+                         placeholder="+60123456789"
+                         value={signInData.phone}
+                         onChange={(e) => handlePhoneChange(e.target.value, false)}
+                         className="pl-9"
+                         required
+                         maxLength={15}
+                       />
+                     </div>
+                     <p className="text-xs text-muted-foreground">
+                       Malaysian phone number format: +60123456789
+                     </p>
+                   </div>
                   
                   <div className="space-y-2">
                     <Label htmlFor="signin-password">Password</Label>
@@ -165,21 +204,25 @@ const AuthPage = () => {
                     </div>
                   </div>
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-phone">Phone Number</Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="signup-phone"
-                        type="tel"
-                        placeholder="+1234567890"
-                        value={signUpData.phone}
-                        onChange={(e) => setSignUpData({ ...signUpData, phone: e.target.value })}
-                        className="pl-9"
-                        required
-                      />
-                    </div>
-                  </div>
+                   <div className="space-y-2">
+                     <Label htmlFor="signup-phone">Phone Number</Label>
+                     <div className="relative">
+                       <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                       <Input
+                         id="signup-phone"
+                         type="tel"
+                         placeholder="+60123456789"
+                         value={signUpData.phone}
+                         onChange={(e) => handlePhoneChange(e.target.value, true)}
+                         className="pl-9"
+                         required
+                         maxLength={15}
+                       />
+                     </div>
+                     <p className="text-xs text-muted-foreground">
+                       Malaysian phone number format: +60123456789
+                     </p>
+                   </div>
                   
                   <div className="space-y-2">
                     <Label htmlFor="signup-role">Role</Label>
