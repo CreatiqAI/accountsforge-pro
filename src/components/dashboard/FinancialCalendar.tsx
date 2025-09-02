@@ -121,34 +121,7 @@ export const FinancialCalendar = () => {
           mode="single"
           selected={selectedDate}
           onSelect={setSelectedDate}
-          className="rounded-md border"
-          modifiers={{
-            hasActivity: (date) => {
-              const activity = getActivityForDate(date);
-              return activity && activity.count > 0;
-            },
-            hasRevenue: (date) => {
-              const activity = getActivityForDate(date);
-              return activity && activity.revenues > 0;
-            },
-            hasExpense: (date) => {
-              const activity = getActivityForDate(date);
-              return activity && activity.expenses > 0;
-            }
-          }}
-          modifiersStyles={{
-            hasActivity: {
-              fontWeight: 'bold'
-            },
-            hasRevenue: {
-              backgroundColor: 'hsl(var(--success) / 0.2)',
-              color: 'hsl(var(--success))'
-            },
-            hasExpense: {
-              backgroundColor: 'hsl(var(--destructive) / 0.2)',
-              color: 'hsl(var(--destructive))'
-            }
-          }}
+          className="rounded-md border pointer-events-auto"
         />
         
         {/* Legend */}

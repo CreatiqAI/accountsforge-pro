@@ -270,7 +270,22 @@ const Dashboard = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <FinancialCalendar />
+          <div className="p-8 text-center">
+            <div className="text-lg font-semibold mb-2">Financial Calendar</div>
+            <div className="text-muted-foreground">
+              Interactive calendar showing daily financial activities will appear here.
+            </div>
+            <div className="mt-4 grid grid-cols-7 gap-2 text-sm">
+              {Array.from({ length: 31 }, (_, i) => (
+                <div 
+                  key={i + 1} 
+                  className="p-2 border rounded hover:bg-muted cursor-pointer text-center"
+                >
+                  {i + 1}
+                </div>
+              ))}
+            </div>
+          </div>
         </CardContent>
       </Card>
 
