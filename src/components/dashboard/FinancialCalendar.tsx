@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { format, isSameDay } from 'date-fns';
+import { format, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, isToday } from 'date-fns';
+import { DollarSign, TrendingUp, TrendingDown, Calendar as CalendarIcon } from 'lucide-react';
 
 interface FinancialActivity {
   date: string;
   revenues: number;
   expenses: number;
-  count: number;
+  revenueCount: number;
+  expenseCount: number;
+  netAmount: number;
 }
 
 export const FinancialCalendar = () => {
@@ -18,39 +21,39 @@ export const FinancialCalendar = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [activities, setActivities] = useState<FinancialActivity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
 
   useEffect(() => {
     fetchCalendarData();
-  }, [user, userProfile]);
+  }, [user, userProfile, currentMonth]);
 
   const fetchCalendarData = async () => {
     try {
-      const currentMonth = new Date();
-      const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-      const endOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+      setLoading(true);
+      const monthStart = startOfMonth(currentMonth);
+      const monthEnd = endOfMonth(currentMonth);
 
-      // Fetch revenues
+      // Fetch revenues for the current month
       let revenueQuery = supabase
         .from('revenues')
-        .select('amount, revenue_date')
-        .gte('revenue_date', startOfMonth.toISOString().split('T')[0])
-        .lte('revenue_date', endOfMonth.toISOString().split('T')[0]);
+        .select('amount, revenue_date, customer_name')
+        .gte('revenue_date', format(monthStart, 'yyyy-MM-dd'))
+        .lte('revenue_date', format(monthEnd, 'yyyy-MM-dd'));
 
       if (userProfile?.role !== 'admin') {
         revenueQuery = revenueQuery.eq('user_id', user?.id);
       }
 
-      // Fetch expenses
+      // Fetch approved expenses for the current month
       let expenseQuery = supabase
         .from('expenses')
-        .select('amount, expense_date')
-        .gte('expense_date', startOfMonth.toISOString().split('T')[0])
-        .lte('expense_date', endOfMonth.toISOString().split('T')[0]);
+        .select('amount, expense_date, description')
+        .gte('expense_date', format(monthStart, 'yyyy-MM-dd'))
+        .lte('expense_date', format(monthEnd, 'yyyy-MM-dd'))
+        .eq('status', 'approved');
 
       if (userProfile?.role !== 'admin') {
-        expenseQuery = expenseQuery.eq('user_id', user?.id).eq('status', 'approved');
-      } else {
-        expenseQuery = expenseQuery.eq('status', 'approved');
+        expenseQuery = expenseQuery.eq('user_id', user?.id);
       }
 
       const [revenueResult, expenseResult] = await Promise.all([
@@ -61,22 +64,39 @@ export const FinancialCalendar = () => {
       const revenues = revenueResult.data || [];
       const expenses = expenseResult.data || [];
 
-      // Group by date
+      // Group by date and calculate totals
       const activityMap = new Map<string, FinancialActivity>();
 
+      // Initialize all days of the month with zero values
+      eachDayOfInterval({ start: monthStart, end: monthEnd }).forEach(date => {
+        const dateStr = format(date, 'yyyy-MM-dd');
+        activityMap.set(dateStr, {
+          date: dateStr,
+          revenues: 0,
+          expenses: 0,
+          revenueCount: 0,
+          expenseCount: 0,
+          netAmount: 0
+        });
+      });
+
+      // Add revenue data
       revenues.forEach(revenue => {
         const date = revenue.revenue_date;
-        const existing = activityMap.get(date) || { date, revenues: 0, expenses: 0, count: 0 };
+        const existing = activityMap.get(date)!;
         existing.revenues += Number(revenue.amount);
-        existing.count += 1;
+        existing.revenueCount += 1;
+        existing.netAmount = existing.revenues - existing.expenses;
         activityMap.set(date, existing);
       });
 
+      // Add expense data
       expenses.forEach(expense => {
         const date = expense.expense_date;
-        const existing = activityMap.get(date) || { date, revenues: 0, expenses: 0, count: 0 };
+        const existing = activityMap.get(date)!;
         existing.expenses += Number(expense.amount);
-        existing.count += 1;
+        existing.expenseCount += 1;
+        existing.netAmount = existing.revenues - existing.expenses;
         activityMap.set(date, existing);
       });
 
@@ -89,9 +109,8 @@ export const FinancialCalendar = () => {
   };
 
   const getActivityForDate = (date: Date) => {
-    return activities.find(activity => 
-      isSameDay(new Date(activity.date), date)
-    );
+    const dateStr = format(date, 'yyyy-MM-dd');
+    return activities.find(activity => activity.date === dateStr);
   };
 
   const formatCurrency = (amount: number) => {
@@ -103,94 +122,232 @@ export const FinancialCalendar = () => {
     }).format(amount);
   };
 
+  const getDayContent = (date: Date) => {
+    const activity = getActivityForDate(date);
+    const hasActivity = activity && (activity.revenueCount > 0 || activity.expenseCount > 0);
+    
+    return (
+      <div className="relative w-full h-full min-h-[60px] p-1">
+        <div className="text-sm font-medium">{format(date, 'd')}</div>
+        {hasActivity && (
+          <div className="mt-1 space-y-1">
+            {activity.revenues > 0 && (
+              <div className="text-xs bg-success/20 text-success px-1 rounded">
+                +{formatCurrency(activity.revenues)}
+              </div>
+            )}
+            {activity.expenses > 0 && (
+              <div className="text-xs bg-destructive/20 text-destructive px-1 rounded">
+                -{formatCurrency(activity.expenses)}
+              </div>
+            )}
+            {activity.netAmount !== 0 && (
+              <div className={`text-xs px-1 rounded font-medium ${
+                activity.netAmount > 0 
+                  ? 'bg-primary/20 text-primary' 
+                  : 'bg-warning/20 text-warning'
+              }`}>
+                {activity.netAmount > 0 ? '+' : ''}{formatCurrency(activity.netAmount)}
+              </div>
+            )}
+          </div>
+        )}
+        {isToday(date) && (
+          <div className="absolute top-0 right-0 w-2 h-2 bg-primary rounded-full"></div>
+        )}
+      </div>
+    );
+  };
+
   const selectedActivity = selectedDate ? getActivityForDate(selectedDate) : null;
+  const monthTotals = activities.reduce((totals, activity) => ({
+    revenues: totals.revenues + activity.revenues,
+    expenses: totals.expenses + activity.expenses,
+    transactions: totals.transactions + activity.revenueCount + activity.expenseCount
+  }), { revenues: 0, expenses: 0, transactions: 0 });
 
   if (loading) {
     return (
-      <div className="animate-pulse">
+      <div className="animate-pulse space-y-4">
+        <div className="h-8 bg-muted rounded w-1/3"></div>
         <div className="h-64 bg-muted rounded"></div>
       </div>
     );
   }
 
   return (
-    <div className="grid md:grid-cols-2 gap-6">
-      {/* Calendar */}
-      <div className="space-y-4">
-        <Calendar
-          mode="single"
-          selected={selectedDate}
-          onSelect={setSelectedDate}
-          className="rounded-md border pointer-events-auto"
-        />
+    <div className="space-y-6">
+      {/* Month Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-success" />
+              <div>
+                <p className="text-sm font-medium">Monthly Revenue</p>
+                <p className="text-lg font-bold text-success">{formatCurrency(monthTotals.revenues)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
         
-        {/* Legend */}
-        <div className="flex flex-wrap gap-2 text-sm">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-success/20 border border-success"></div>
-            <span>Revenue</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-destructive/20 border border-destructive"></div>
-            <span>Expenses</span>
-          </div>
-        </div>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <TrendingDown className="h-4 w-4 text-destructive" />
+              <div>
+                <p className="text-sm font-medium">Monthly Expenses</p>
+                <p className="text-lg font-bold text-destructive">{formatCurrency(monthTotals.expenses)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-primary" />
+              <div>
+                <p className="text-sm font-medium">Net Amount</p>
+                <p className={`text-lg font-bold ${
+                  monthTotals.revenues - monthTotals.expenses >= 0 ? 'text-success' : 'text-destructive'
+                }`}>
+                  {formatCurrency(monthTotals.revenues - monthTotals.expenses)}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Selected Date Details */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold">
-          {selectedDate ? format(selectedDate, 'MMMM d, yyyy') : 'Select a date'}
-        </h3>
-        
-        {selectedActivity ? (
-          <div className="space-y-3">
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Revenue</span>
-                  <Badge variant="secondary" className="bg-success/10 text-success">
-                    {formatCurrency(selectedActivity.revenues)}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Expenses</span>
-                  <Badge variant="secondary" className="bg-destructive/10 text-destructive">
-                    {formatCurrency(selectedActivity.expenses)}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Net</span>
-                  <Badge variant="secondary" className={
-                    selectedActivity.revenues - selectedActivity.expenses >= 0 
-                      ? 'bg-success/10 text-success' 
-                      : 'bg-destructive/10 text-destructive'
-                  }>
-                    {formatCurrency(selectedActivity.revenues - selectedActivity.expenses)}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <div className="text-sm text-muted-foreground">
-              {selectedActivity.count} transaction{selectedActivity.count !== 1 ? 's' : ''}
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Calendar View */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <CalendarIcon className="h-5 w-5" />
+              {format(currentMonth, 'MMMM yyyy')}
+            </h3>
+          </div>
+          
+          <div className="border rounded-lg p-4">
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={setSelectedDate}
+              month={currentMonth}
+              onMonthChange={setCurrentMonth}
+              className="w-full"
+              components={{
+                Day: ({ date }) => (
+                  <button 
+                    className={`w-full h-full min-h-[60px] p-1 text-left hover:bg-muted rounded ${
+                      selectedDate && isSameDay(date, selectedDate) ? 'bg-primary/20' : ''
+                    }`}
+                    onClick={() => setSelectedDate(date)}
+                  >
+                    {getDayContent(date)}
+                  </button>
+                )
+              }}
+            />
+          </div>
+          
+          {/* Legend */}
+          <div className="flex flex-wrap gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded bg-success/20 border border-success"></div>
+              <span>Revenue</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded bg-destructive/20 border border-destructive"></div>
+              <span>Expenses</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded bg-primary/20 border border-primary"></div>
+              <span>Net Positive</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-primary"></div>
+              <span>Today</span>
             </div>
           </div>
-        ) : (
-          <div className="text-muted-foreground">
-            {selectedDate ? 'No financial activity on this date' : 'Select a date to view details'}
-          </div>
-        )}
+        </div>
+
+        {/* Selected Date Details */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">
+            {selectedDate ? format(selectedDate, 'EEEE, MMMM d, yyyy') : 'Select a date'}
+          </h3>
+          
+          {selectedActivity ? (
+            <div className="space-y-3">
+              {selectedActivity.revenueCount > 0 && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4 text-success" />
+                      Revenue ({selectedActivity.revenueCount} transaction{selectedActivity.revenueCount !== 1 ? 's' : ''})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="text-2xl font-bold text-success">
+                      {formatCurrency(selectedActivity.revenues)}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {selectedActivity.expenseCount > 0 && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <TrendingDown className="h-4 w-4 text-destructive" />
+                      Expenses ({selectedActivity.expenseCount} transaction{selectedActivity.expenseCount !== 1 ? 's' : ''})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="text-2xl font-bold text-destructive">
+                      {formatCurrency(selectedActivity.expenses)}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {(selectedActivity.revenueCount > 0 || selectedActivity.expenseCount > 0) && (
+                <Card className={`${
+                  selectedActivity.netAmount >= 0 ? 'bg-success/5' : 'bg-destructive/5'
+                }`}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <DollarSign className="h-4 w-4" />
+                      Net Amount
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className={`text-2xl font-bold ${
+                      selectedActivity.netAmount >= 0 ? 'text-success' : 'text-destructive'
+                    }`}>
+                      {selectedActivity.netAmount >= 0 ? '+' : ''}{formatCurrency(selectedActivity.netAmount)}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {selectedActivity.revenueCount === 0 && selectedActivity.expenseCount === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <CalendarIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No financial activity on this date</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <CalendarIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>Select a date to view financial details</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
