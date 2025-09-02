@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Filter, Eye, Check, X, Upload } from 'lucide-react';
+import { Plus, Filter, Eye, Check, X, Upload, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -52,7 +52,11 @@ const ExpensesPage = () => {
           expense_date,
           status,
           proof_url,
-          user_id
+          user_id,
+          profiles(
+            full_name,
+            phone_number
+          )
         `)
         .order('expense_date', { ascending: false });
 
@@ -134,6 +138,31 @@ const ExpensesPage = () => {
       toast({
         title: "Error",
         description: "Failed to update expense status",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteExpense = async (expenseId: string) => {
+    try {
+      const { error } = await supabase
+        .from('expenses')
+        .delete()
+        .eq('id', expenseId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Expense deleted successfully"
+      });
+
+      fetchExpenses();
+    } catch (error) {
+      console.error('Error deleting expense:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete expense",
         variant: "destructive"
       });
     }
@@ -339,6 +368,15 @@ const ExpensesPage = () => {
                               <X className="h-4 w-4 text-destructive" />
                             </Button>
                           </>
+                        )}
+                        {userProfile?.role === 'admin' && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleDeleteExpense(expense.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
                         )}
                       </div>
                     </TableCell>
