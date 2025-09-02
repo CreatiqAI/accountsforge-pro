@@ -124,36 +124,29 @@ export const FinancialCalendar = () => {
 
   const getDayContent = (date: Date) => {
     const activity = getActivityForDate(date);
-    const hasActivity = activity && (activity.revenueCount > 0 || activity.expenseCount > 0);
+    const hasRevenue = activity && activity.revenues > 0;
+    const hasExpenses = activity && activity.expenses > 0;
     
     return (
-      <div className="relative w-full h-full min-h-[60px] p-1">
+      <div className="relative w-full h-full min-h-[40px] p-2 flex items-center justify-center">
         <div className="text-sm font-medium">{format(date, 'd')}</div>
-        {hasActivity && (
-          <div className="mt-1 space-y-1">
-            {activity.revenues > 0 && (
-              <div className="text-xs bg-success/20 text-success px-1 rounded">
-                +{formatCurrency(activity.revenues)}
-              </div>
-            )}
-            {activity.expenses > 0 && (
-              <div className="text-xs bg-destructive/20 text-destructive px-1 rounded">
-                -{formatCurrency(activity.expenses)}
-              </div>
-            )}
-            {activity.netAmount !== 0 && (
-              <div className={`text-xs px-1 rounded font-medium ${
-                activity.netAmount > 0 
-                  ? 'bg-primary/20 text-primary' 
-                  : 'bg-warning/20 text-warning'
-              }`}>
-                {activity.netAmount > 0 ? '+' : ''}{formatCurrency(activity.netAmount)}
-              </div>
-            )}
-          </div>
-        )}
+        
+        {/* Activity indicators */}
+        <div className="absolute bottom-1 right-1 flex gap-0.5">
+          {hasRevenue && (
+            <div className="w-2 h-2 bg-success rounded-full"></div>
+          )}
+          {hasExpenses && (
+            <div className="w-2 h-2 bg-destructive rounded-full"></div>
+          )}
+          {hasRevenue && hasExpenses && (
+            <div className="w-2 h-2 bg-warning rounded-full"></div>
+          )}
+        </div>
+        
+        {/* Today indicator */}
         {isToday(date) && (
-          <div className="absolute top-0 right-0 w-2 h-2 bg-primary rounded-full"></div>
+          <div className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full"></div>
         )}
       </div>
     );
@@ -241,8 +234,8 @@ export const FinancialCalendar = () => {
               components={{
                 Day: ({ date }) => (
                   <button 
-                    className={`w-full h-full min-h-[60px] p-1 text-left hover:bg-muted rounded ${
-                      selectedDate && isSameDay(date, selectedDate) ? 'bg-primary/20' : ''
+                    className={`w-full h-full min-h-[40px] text-left hover:bg-muted rounded transition-colors ${
+                      selectedDate && isSameDay(date, selectedDate) ? 'bg-primary/20 ring-2 ring-primary/30' : ''
                     }`}
                     onClick={() => setSelectedDate(date)}
                   >
@@ -256,16 +249,16 @@ export const FinancialCalendar = () => {
           {/* Legend */}
           <div className="flex flex-wrap gap-4 text-sm">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded bg-success/20 border border-success"></div>
+              <div className="w-2 h-2 rounded-full bg-success"></div>
               <span>Revenue</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded bg-destructive/20 border border-destructive"></div>
+              <div className="w-2 h-2 rounded-full bg-destructive"></div>
               <span>Expenses</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded bg-primary/20 border border-primary"></div>
-              <span>Net Positive</span>
+              <div className="w-2 h-2 rounded-full bg-warning"></div>
+              <span>Both</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-primary"></div>
