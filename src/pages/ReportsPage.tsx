@@ -282,75 +282,126 @@ const ReportsPage = () => {
         </Card>
       </div>
 
-      {/* Detailed Statement */}
+      {/* Official P&L Statement */}
       <Card>
-        <CardHeader>
-          <CardTitle>Profit & Loss Statement</CardTitle>
-          <CardDescription>
-            For period from {new Date(dateRange.start).toLocaleDateString()} to {new Date(dateRange.end).toLocaleDateString()}
+        <CardHeader className="text-center border-b">
+          <CardTitle className="text-2xl font-bold">PROFIT & LOSS STATEMENT</CardTitle>
+          <CardDescription className="text-lg">
+            For the Period Ended {new Date(dateRange.end).toLocaleDateString('en-US', { 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
-            {/* Revenue Section */}
-            <div>
-              <h3 className="text-lg font-semibold text-success mb-3">Revenue</h3>
-              <div className="space-y-2">
-                {plData.revenueEntries.map((revenue, index) => (
-                  <div key={index} className="flex justify-between py-2 border-b border-border">
-                    <div>
-                      <p className="font-medium">{revenue.customer_name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(revenue.revenue_date).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <p className="font-medium text-success">
-                      {formatCurrency(revenue.amount)}
-                    </p>
-                  </div>
-                ))}
-                <div className="flex justify-between py-2 font-bold text-lg border-t-2 border-success">
-                  <p>Total Revenue</p>
-                  <p className="text-success">{formatCurrency(plData.totalRevenue)}</p>
+        <CardContent className="p-8">
+          <div className="max-w-4xl mx-auto space-y-6">
+            
+            {/* REVENUE SECTION */}
+            <div className="space-y-3">
+              <div className="font-bold text-lg border-b pb-2">REVENUE</div>
+              <div className="pl-4 space-y-2">
+                <div className="flex justify-between">
+                  <span>Sales Revenue</span>
+                  <span className="w-32 text-right">{formatCurrency(plData.totalRevenue)}</span>
                 </div>
+              </div>
+              <div className="flex justify-between font-semibold border-t pt-2">
+                <span>Total Revenue</span>
+                <span className="w-32 text-right border-b-2 border-black pb-1">
+                  {formatCurrency(plData.totalRevenue)}
+                </span>
               </div>
             </div>
 
-            {/* Expenses Section */}
-            <div>
-              <h3 className="text-lg font-semibold text-destructive mb-3">Expenses</h3>
-              <div className="space-y-2">
-                {plData.expenseEntries.map((expense, index) => (
-                  <div key={index} className="flex justify-between py-2 border-b border-border">
-                    <div>
-                      <p className="font-medium">{expense.description}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(expense.expense_date).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <p className="font-medium text-destructive">
-                      {formatCurrency(expense.amount)}
-                    </p>
-                  </div>
-                ))}
-                <div className="flex justify-between py-2 font-bold text-lg border-t-2 border-destructive">
-                  <p>Total Expenses</p>
-                  <p className="text-destructive">{formatCurrency(plData.totalExpenses)}</p>
+            {/* COST OF GOODS SOLD / EXPENSES SECTION */}
+            <div className="space-y-3">
+              <div className="font-bold text-lg border-b pb-2">OPERATING EXPENSES</div>
+              <div className="pl-4 space-y-2">
+                {/* Group expenses by category if needed */}
+                <div className="flex justify-between">
+                  <span>General & Administrative Expenses</span>
+                  <span className="w-32 text-right">{formatCurrency(plData.totalExpenses)}</span>
                 </div>
+              </div>
+              <div className="flex justify-between font-semibold border-t pt-2">
+                <span>Total Operating Expenses</span>
+                <span className="w-32 text-right border-b-2 border-black pb-1">
+                  {formatCurrency(plData.totalExpenses)}
+                </span>
               </div>
             </div>
 
-            {/* Net Profit/Loss */}
-            <div className={`p-4 rounded-lg ${
-              plData.netProfit >= 0 ? 'bg-success-light' : 'bg-destructive/10'
-            }`}>
-              <div className="flex justify-between items-center">
-                <h3 className="text-xl font-bold">Net {plData.netProfit >= 0 ? 'Profit' : 'Loss'}</h3>
-                <p className={`text-2xl font-bold ${
+            {/* GROSS PROFIT */}
+            <div className="space-y-3">
+              <div className="flex justify-between font-bold text-lg">
+                <span>GROSS PROFIT</span>
+                <span className="w-32 text-right border-b-2 border-black pb-1">
+                  {formatCurrency(plData.totalRevenue - plData.totalExpenses)}
+                </span>
+              </div>
+            </div>
+
+            {/* NET INCOME */}
+            <div className="space-y-3 pt-4">
+              <div className="flex justify-between font-bold text-xl border-t-4 border-black pt-4">
+                <span>NET {plData.netProfit >= 0 ? 'INCOME' : 'LOSS'}</span>
+                <span className={`w-32 text-right border-b-4 border-black pb-1 ${
                   plData.netProfit >= 0 ? 'text-success' : 'text-destructive'
                 }`}>
                   {formatCurrency(Math.abs(plData.netProfit))}
-                </p>
+                </span>
+              </div>
+            </div>
+
+            {/* EARNINGS PER SHARE (if applicable) */}
+            <div className="mt-8 pt-6 border-t">
+              <div className="text-center text-sm text-muted-foreground">
+                <p>Statement prepared on {new Date().toLocaleDateString('en-US', { 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                })}</p>
+                <p className="mt-2">All amounts in USD</p>
+              </div>
+            </div>
+
+            {/* DETAILED BREAKDOWN */}
+            <div className="mt-8 pt-6 border-t">
+              <h4 className="font-bold text-lg mb-4">DETAILED BREAKDOWN</h4>
+              
+              {/* Revenue Details */}
+              <div className="mb-6">
+                <h5 className="font-semibold mb-2 text-success">Revenue Entries:</h5>
+                <div className="space-y-1 text-sm">
+                  {plData.revenueEntries.length > 0 ? (
+                    plData.revenueEntries.map((revenue, index) => (
+                      <div key={index} className="flex justify-between pl-4">
+                        <span>{revenue.customer_name} - {new Date(revenue.revenue_date).toLocaleDateString()}</span>
+                        <span>{formatCurrency(revenue.amount)}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-muted-foreground pl-4">No revenue entries for this period</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Expense Details */}
+              <div>
+                <h5 className="font-semibold mb-2 text-destructive">Expense Entries:</h5>
+                <div className="space-y-1 text-sm">
+                  {plData.expenseEntries.length > 0 ? (
+                    plData.expenseEntries.map((expense, index) => (
+                      <div key={index} className="flex justify-between pl-4">
+                        <span>{expense.description} - {new Date(expense.expense_date).toLocaleDateString()}</span>
+                        <span>{formatCurrency(expense.amount)}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-muted-foreground pl-4">No expense entries for this period</p>
+                  )}
+                </div>
               </div>
             </div>
           </div>

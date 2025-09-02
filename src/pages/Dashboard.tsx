@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { RevenueExpenseChart, ProfitChart } from '@/components/charts/FinancialCharts';
+import { FinancialCalendar } from '@/components/dashboard/FinancialCalendar';
 
 interface FinancialData {
   totalRevenue: number;
@@ -260,32 +261,18 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Revenue vs Expenses</CardTitle>
-            <CardDescription>
-              Last 6 months comparison
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <RevenueExpenseChart data={chartData} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Net Profit Trend</CardTitle>
-            <CardDescription>
-              Monthly profit over time
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ProfitChart data={chartData} />
-          </CardContent>
-        </Card>
-      </div>
+      {/* Financial Calendar Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Financial Calendar</CardTitle>
+          <CardDescription>
+            Daily financial activities overview
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FinancialCalendar />
+        </CardContent>
+      </Card>
 
       {/* Quick Actions */}
       <div className="grid gap-4 md:grid-cols-2">
