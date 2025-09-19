@@ -92,9 +92,9 @@ const ClaimsPage = () => {
           profiles: profilesData?.find(p => p.user_id === claim.user_id)
         }));
 
-        setClaims(claimsWithProfiles);
+        setClaims(claimsWithProfiles as any);
       } else {
-        setClaims(claimsData || []);
+        setClaims(claimsData as any || []);
       }
     } catch (error) {
       console.error('Error fetching claims:', error);

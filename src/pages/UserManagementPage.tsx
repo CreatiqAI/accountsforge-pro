@@ -18,7 +18,7 @@ interface UserProfile {
   user_id: string;
   phone_number: string;
   full_name: string;
-  role: 'admin' | 'salesman' | 'employee';
+  role: 'admin' | 'salesman';
   created_at: string;
   updated_at: string;
 }
@@ -33,7 +33,7 @@ const UserManagementPage = () => {
     phone: '',
     password: '',
     fullName: '',
-    role: 'employee'
+    role: 'salesman'
   });
 
   useEffect(() => {
@@ -108,7 +108,7 @@ const UserManagementPage = () => {
         phone: '',
         password: '',
         fullName: '',
-        role: 'employee'
+        role: 'salesman'
       });
       setIsAddDialogOpen(false);
       fetchUsers();
@@ -124,7 +124,7 @@ const UserManagementPage = () => {
     }
   };
 
-  const handleRoleChange = async (userId: string, newRole: 'admin' | 'salesman' | 'employee') => {
+  const handleRoleChange = async (userId: string, newRole: 'admin' | 'salesman') => {
     try {
       const { error } = await supabase
         .from('profiles')
@@ -156,12 +156,6 @@ const UserManagementPage = () => {
           Admin
         </Badge>
       );
-    } else if (role === 'employee') {
-      return (
-        <Badge className="bg-gray-100 text-gray-700 border border-gray-300 font-medium">
-          Employee
-        </Badge>
-      );
     } else {
       return (
         <Badge className="bg-gray-600 text-white border-0 font-medium">
@@ -191,7 +185,7 @@ const UserManagementPage = () => {
   // Calculate summary stats
   const totalUsers = users.length;
   const adminCount = users.filter(u => u.role === 'admin').length;
-  const employeeCount = users.filter(u => u.role === 'employee').length;
+  const employeeCount = 0; // No employee role in database
   const salesmanCount = users.filter(u => u.role === 'salesman').length;
 
   return (
@@ -270,7 +264,6 @@ const UserManagementPage = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-white border-gray-200">
-                      <SelectItem value="employee">Employee</SelectItem>
                       <SelectItem value="salesman">Salesman</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
                     </SelectContent>
@@ -454,15 +447,6 @@ const UserManagementPage = () => {
                                 >
                                   <Shield className="h-4 w-4 mr-2" />
                                   Change to Admin
-                                </DropdownMenuItem>
-                              )}
-                              {user.role !== 'employee' && (
-                                <DropdownMenuItem
-                                  onClick={() => handleRoleChange(user.user_id, 'employee')}
-                                  className="text-gray-700 hover:bg-gray-100 cursor-pointer"
-                                >
-                                  <Users className="h-4 w-4 mr-2" />
-                                  Change to Employee
                                 </DropdownMenuItem>
                               )}
                               {user.role !== 'salesman' && (

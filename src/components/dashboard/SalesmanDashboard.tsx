@@ -69,11 +69,11 @@ const SalesmanDashboard = () => {
         .eq('user_id', user?.id)
         .order('submitted_date', { ascending: false });
 
-      // Fetch commissions
+      // Fetch commissions from salesman_performance
       const { data: commissions } = await supabase
-        .from('commissions')
+        .from('salesman_performance')
         .select('*')
-        .eq('salesman_id', user?.id);
+        .eq('user_id', user?.id);
 
       if (sales && expenses && claims && commissions) {
         const totalSales = sales
@@ -81,7 +81,7 @@ const SalesmanDashboard = () => {
           .reduce((sum, s) => sum + Number(s.amount), 0);
 
         const totalCommissions = commissions
-          .reduce((sum, c) => sum + Number(c.commission_amount), 0);
+          .reduce((sum, c) => sum + Number(c.commission_earned || 0), 0);
 
         const totalExpenses = expenses
           .filter(e => e.status === 'approved')
@@ -93,7 +93,7 @@ const SalesmanDashboard = () => {
 
         const monthlyCommissions = commissions
           .filter(c => new Date(c.created_at) >= monthStart)
-          .reduce((sum, c) => sum + Number(c.commission_amount), 0);
+          .reduce((sum, c) => sum + Number(c.commission_earned || 0), 0);
 
         const pendingSales = sales.filter(s => s.status === 'pending').length;
         const approvedSales = sales.filter(s => s.status === 'approved').length;

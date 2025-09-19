@@ -80,9 +80,9 @@ const PerformancePage = () => {
 
   const fetchPerformances = async () => {
     try {
-      // Use monthly_performance table instead of salesman_performance
+      // Use salesman_performance table
       let performanceQuery = supabase
-        .from('performance_reports')
+        .from('salesman_performance')
         .select('*')
         .order('year', { ascending: false })
         .order('month', { ascending: false });
@@ -121,9 +121,9 @@ const PerformancePage = () => {
           profiles: profilesData?.find(p => p.user_id === performance.user_id)
         }));
 
-        setPerformances(performanceWithProfiles);
+        setPerformances(performanceWithProfiles as any);
       } else {
-        setPerformances(performanceData || []);
+        setPerformances(performanceData as any || []);
       }
     } catch (error) {
       console.error('Error fetching performance records:', error);

@@ -75,9 +75,9 @@ const ExpensesPage = () => {
           profiles: profilesData?.find(p => p.user_id === expense.user_id)
         }));
 
-        setExpenses(expensesWithProfiles);
+        setExpenses(expensesWithProfiles as any);
       } else {
-        setExpenses(expensesData || []);
+        setExpenses(expensesData as any || []);
       }
     } catch (error) {
       console.error('Error fetching expenses:', error);
