@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { formatCurrency } from '@/lib/utils';
 
 interface Claim {
   id: string;
@@ -55,31 +56,46 @@ const ClaimsPage = () => {
 
   const fetchClaims = async () => {
     try {
-      let query = supabase
+      let claimsQuery = supabase
         .from('claims')
-        .select(`
-          *,
-          profiles(full_name, phone_number)
-        `)
+        .select('*')
         .order('submitted_date', { ascending: false });
 
       // Apply filters
       if (statusFilter && statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
+        claimsQuery = claimsQuery.eq('status', statusFilter);
       }
       if (typeFilter && typeFilter !== 'all') {
-        query = query.eq('claim_type', typeFilter);
+        claimsQuery = claimsQuery.eq('claim_type', typeFilter);
       }
 
       // Non-admins can only see their own claims
       if (userProfile?.role !== 'admin') {
-        query = query.eq('user_id', user?.id);
+        claimsQuery = claimsQuery.eq('user_id', user?.id);
       }
 
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      setClaims(data as unknown as Claim[]);
+      const { data: claimsData, error: claimsError } = await claimsQuery;
+
+      if (claimsError) throw claimsError;
+
+      // Get user profiles for admin view
+      if (userProfile?.role === 'admin' && claimsData?.length > 0) {
+        const userIds = [...new Set(claimsData.map(c => c.user_id))];
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, phone_number')
+          .in('user_id', userIds);
+
+        // Merge profile data with claims
+        const claimsWithProfiles = claimsData.map(claim => ({
+          ...claim,
+          profiles: profilesData?.find(p => p.user_id === claim.user_id)
+        }));
+
+        setClaims(claimsWithProfiles);
+      } else {
+        setClaims(claimsData || []);
+      }
     } catch (error) {
       console.error('Error fetching claims:', error);
       toast({
@@ -193,12 +209,6 @@ const ClaimsPage = () => {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
-  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {

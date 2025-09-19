@@ -18,7 +18,7 @@ interface UserProfile {
   user_id: string;
   phone_number: string;
   full_name: string;
-  role: 'admin' | 'salesman';
+  role: 'admin' | 'salesman' | 'employee';
   created_at: string;
   updated_at: string;
 }
@@ -33,25 +33,33 @@ const UserManagementPage = () => {
     phone: '',
     password: '',
     fullName: '',
-    role: 'salesman'
+    role: 'employee'
   });
+
+  useEffect(() => {
+    if (userProfile?.role === 'admin') {
+      fetchUsers();
+    }
+  }, [userProfile]);
 
   // Redirect if not admin
   if (userProfile?.role !== 'admin') {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <Shield className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <h2 className="text-lg font-semibold">Access Denied</h2>
-          <p className="text-muted-foreground">Only administrators can access user management.</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="text-center bg-white rounded-lg shadow-sm border border-gray-200 p-12 max-w-md">
+          <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+            <Shield className="h-8 w-8 text-gray-600" />
+          </div>
+          <h2 className="text-2xl font-semibold text-gray-900 mb-3">
+            Access Denied
+          </h2>
+          <p className="text-gray-600">
+            Only administrators can access user management.
+          </p>
         </div>
       </div>
     );
   }
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
 
   const fetchUsers = async () => {
     try {
@@ -100,7 +108,7 @@ const UserManagementPage = () => {
         phone: '',
         password: '',
         fullName: '',
-        role: 'salesman'
+        role: 'employee'
       });
       setIsAddDialogOpen(false);
       fetchUsers();
@@ -116,7 +124,7 @@ const UserManagementPage = () => {
     }
   };
 
-  const handleRoleChange = async (userId: string, newRole: 'admin' | 'salesman') => {
+  const handleRoleChange = async (userId: string, newRole: 'admin' | 'salesman' | 'employee') => {
     try {
       const { error } = await supabase
         .from('profiles')
@@ -142,26 +150,40 @@ const UserManagementPage = () => {
   };
 
   const getRoleBadge = (role: string) => {
-    return role === 'admin' ? (
-      <Badge className="bg-primary text-primary-foreground">Admin</Badge>
-    ) : (
-      <Badge variant="outline">Salesman</Badge>
-    );
+    if (role === 'admin') {
+      return (
+        <Badge className="bg-gray-900 text-white border-0 font-medium">
+          Admin
+        </Badge>
+      );
+    } else if (role === 'employee') {
+      return (
+        <Badge className="bg-gray-100 text-gray-700 border border-gray-300 font-medium">
+          Employee
+        </Badge>
+      );
+    } else {
+      return (
+        <Badge className="bg-gray-600 text-white border-0 font-medium">
+          Salesman
+        </Badge>
+      );
+    }
   };
 
   if (loading && users.length === 0) {
     return (
-      <div className="space-y-6">
-        <div className="h-8 bg-muted rounded w-1/4 animate-pulse"></div>
-        <Card>
-          <CardContent className="p-6">
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-7xl mx-auto space-y-8">
+          <div className="h-8 bg-gray-200 rounded w-1/4 animate-pulse mb-8"></div>
+          <div className="bg-white rounded-lg border border-gray-200 p-8 shadow-sm">
             <div className="space-y-4">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-12 bg-muted rounded animate-pulse"></div>
+                <div key={i} className="h-12 bg-gray-100 rounded animate-pulse"></div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     );
   }
@@ -169,225 +191,301 @@ const UserManagementPage = () => {
   // Calculate summary stats
   const totalUsers = users.length;
   const adminCount = users.filter(u => u.role === 'admin').length;
+  const employeeCount = users.filter(u => u.role === 'employee').length;
   const salesmanCount = users.filter(u => u.role === 'salesman').length;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">User Management</h1>
-          <p className="text-muted-foreground">
-            Manage user accounts and permissions
-          </p>
-        </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-primary hover:bg-primary-dark">
-              <UserPlus className="h-4 w-4 mr-2" />
-              Add User
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New User</DialogTitle>
-              <DialogDescription>
-                Create a new user account for the system.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleAddUser} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
-                <Input
-                  id="fullName"
-                  placeholder="John Doe"
-                  value={newUser.fullName}
-                  onChange={(e) => setNewUser({ ...newUser, fullName: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="+1234567890"
-                  value={newUser.phone}
-                  onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={newUser.password}
-                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                  required
-                  minLength={6}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
-                <Select 
-                  value={newUser.role} 
-                  onValueChange={(value) => setNewUser({ ...newUser, role: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="salesman">Salesman</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex gap-2">
-                <Button type="submit" className="flex-1" disabled={loading}>
-                  {loading ? 'Creating...' : 'Create User'}
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setIsAddDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalUsers}</div>
-            <p className="text-xs text-muted-foreground">
-              Active user accounts
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto p-6 space-y-8">
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              User Management
+            </h1>
+            <p className="text-gray-600">
+              Manage user accounts and permissions
             </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Administrators</CardTitle>
-            <Shield className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-primary">{adminCount}</div>
-            <p className="text-xs text-muted-foreground">
-              Full system access
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Salesmen</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{salesmanCount}</div>
-            <p className="text-xs text-muted-foreground">
-              Standard access
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Users Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>All Users</CardTitle>
-          <CardDescription>
-            {users.length} total users in the system
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {users.length === 0 ? (
-            <div className="text-center py-8">
-              <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No users found</p>
-              <Button 
-                className="mt-4" 
-                onClick={() => setIsAddDialogOpen(true)}
-              >
-                Add Your First User
+          </div>
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-md font-medium transition-colors">
+                <UserPlus className="h-4 w-4 mr-2" />
+                Add User
               </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-white border border-gray-200 rounded-lg shadow-lg">
+              <DialogHeader>
+                <DialogTitle className="text-xl font-semibold text-gray-900">
+                  Add New User
+                </DialogTitle>
+                <DialogDescription className="text-gray-600">
+                  Create a new user account for the system.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleAddUser} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fullName" className="text-gray-700 font-medium">Full Name</Label>
+                  <Input
+                    id="fullName"
+                    placeholder="John Doe"
+                    value={newUser.fullName}
+                    onChange={(e) => setNewUser({ ...newUser, fullName: e.target.value })}
+                    className="border-gray-300 focus:border-gray-500 focus:ring-gray-500/20"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="text-gray-700 font-medium">Phone Number</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="+1234567890"
+                    value={newUser.phone}
+                    onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+                    className="border-gray-300 focus:border-gray-500 focus:ring-gray-500/20"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-gray-700 font-medium">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={newUser.password}
+                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                    className="border-gray-300 focus:border-gray-500 focus:ring-gray-500/20"
+                    required
+                    minLength={6}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="role" className="text-gray-700 font-medium">Role</Label>
+                  <Select
+                    value={newUser.role}
+                    onValueChange={(value) => setNewUser({ ...newUser, role: value })}
+                  >
+                    <SelectTrigger className="border-gray-300 focus:border-gray-500 focus:ring-gray-500/20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-gray-200">
+                      <SelectItem value="employee">Employee</SelectItem>
+                      <SelectItem value="salesman">Salesman</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <Button
+                    type="submit"
+                    className="flex-1 bg-gray-900 hover:bg-gray-800 text-white"
+                    disabled={loading}
+                  >
+                    {loading ? 'Creating...' : 'Create User'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsAddDialogOpen(false)}
+                    className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">Total Users</CardTitle>
+              <div className="p-2 bg-gray-100 rounded-md">
+                <Users className="h-4 w-4 text-gray-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-900">{totalUsers}</div>
+              <p className="text-xs text-gray-500 mt-1">
+                Active user accounts
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">Administrators</CardTitle>
+              <div className="p-2 bg-gray-100 rounded-md">
+                <Shield className="h-4 w-4 text-gray-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-900">{adminCount}</div>
+              <p className="text-xs text-gray-500 mt-1">
+                Full system access
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">Employees</CardTitle>
+              <div className="p-2 bg-gray-100 rounded-md">
+                <Users className="h-4 w-4 text-gray-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-900">{employeeCount}</div>
+              <p className="text-xs text-gray-500 mt-1">
+                Expense & claim management
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">Salesmen</CardTitle>
+              <div className="p-2 bg-gray-100 rounded-md">
+                <Users className="h-4 w-4 text-gray-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-900">{salesmanCount}</div>
+              <p className="text-xs text-gray-500 mt-1">
+                Sales & commission tracking
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Users Table */}
+        <Card className="bg-white border border-gray-200 shadow-sm">
+          <CardHeader className="border-b border-gray-200">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-gray-100 rounded-md">
+                <Users className="h-5 w-5 text-gray-600" />
+              </div>
+              <div>
+                <CardTitle className="text-lg font-semibold text-gray-900">All Users</CardTitle>
+                <CardDescription className="text-gray-600">
+                  {users.length} total users in the system
+                </CardDescription>
+              </div>
             </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Joined</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                          <span className="text-xs font-medium text-primary">
-                            {user.full_name.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                        <span className="font-medium">{user.full_name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Phone className="h-4 w-4 text-muted-foreground" />
-                        {user.phone_number}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {getRoleBadge(user.role)}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        {new Date(user.created_at).toLocaleDateString()}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                          <DropdownMenuItem
-                            onClick={() => handleRoleChange(
-                              user.user_id, 
-                              user.role === 'admin' ? 'salesman' : 'admin'
-                            )}
-                          >
-                            Change to {user.role === 'admin' ? 'Salesman' : 'Admin'}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent className="p-6">
+            {users.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                  <Users className="h-8 w-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No users found</h3>
+                <p className="text-gray-600 mb-6">Get started by adding your first user to the system</p>
+                <Button
+                  className="bg-gray-900 hover:bg-gray-800 text-white"
+                  onClick={() => setIsAddDialogOpen(true)}
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Add Your First User
+                </Button>
+              </div>
+            ) : (
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-gray-50">
+                      <TableHead className="text-gray-700 font-medium">Name</TableHead>
+                      <TableHead className="text-gray-700 font-medium">Phone</TableHead>
+                      <TableHead className="text-gray-700 font-medium">Role</TableHead>
+                      <TableHead className="text-gray-700 font-medium">Joined</TableHead>
+                      <TableHead className="text-gray-700 font-medium">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {users.map((user) => (
+                      <TableRow
+                        key={user.id}
+                        className="hover:bg-gray-50 transition-colors"
+                      >
+                        <TableCell className="py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
+                              <span className="text-sm font-medium text-gray-600">
+                                {user.full_name.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            <span className="font-medium text-gray-900">{user.full_name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-3">
+                          <div className="flex items-center gap-2">
+                            <Phone className="h-4 w-4 text-gray-400" />
+                            <span className="text-gray-600">{user.phone_number}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-3">
+                          {getRoleBadge(user.role)}
+                        </TableCell>
+                        <TableCell className="py-3">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-gray-400" />
+                            <span className="text-gray-600">{new Date(user.created_at).toLocaleDateString()}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-3">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="bg-white border border-gray-200 shadow-lg">
+                              {user.role !== 'admin' && (
+                                <DropdownMenuItem
+                                  onClick={() => handleRoleChange(user.user_id, 'admin')}
+                                  className="text-gray-700 hover:bg-gray-100 cursor-pointer"
+                                >
+                                  <Shield className="h-4 w-4 mr-2" />
+                                  Change to Admin
+                                </DropdownMenuItem>
+                              )}
+                              {user.role !== 'employee' && (
+                                <DropdownMenuItem
+                                  onClick={() => handleRoleChange(user.user_id, 'employee')}
+                                  className="text-gray-700 hover:bg-gray-100 cursor-pointer"
+                                >
+                                  <Users className="h-4 w-4 mr-2" />
+                                  Change to Employee
+                                </DropdownMenuItem>
+                              )}
+                              {user.role !== 'salesman' && (
+                                <DropdownMenuItem
+                                  onClick={() => handleRoleChange(user.user_id, 'salesman')}
+                                  className="text-gray-700 hover:bg-gray-100 cursor-pointer"
+                                >
+                                  <Users className="h-4 w-4 mr-2" />
+                                  Change to Salesman
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { formatCurrency } from '@/lib/utils';
 import { format, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, isToday } from 'date-fns';
 import { DollarSign, TrendingUp, TrendingDown, Calendar as CalendarIcon } from 'lucide-react';
 
@@ -113,14 +114,6 @@ export const FinancialCalendar = () => {
     return activities.find(activity => activity.date === dateStr);
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
 
   const getDayContent = (date: Date) => {
     const activity = getActivityForDate(date);

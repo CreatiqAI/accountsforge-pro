@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { formatCurrency } from '@/lib/utils';
 
 interface PerformanceRecord {
   id: string;
@@ -79,35 +80,51 @@ const PerformancePage = () => {
 
   const fetchPerformances = async () => {
     try {
-      let query = supabase
-        .from('salesman_performance')
-        .select(`
-          *,
-          profiles(full_name, phone_number)
-        `)
+      // Use monthly_performance table instead of salesman_performance
+      let performanceQuery = supabase
+        .from('performance_reports')
+        .select('*')
         .order('year', { ascending: false })
         .order('month', { ascending: false });
 
       // Apply filters
       if (selectedMonth && selectedMonth !== 'all') {
-        query = query.eq('month', parseInt(selectedMonth));
+        performanceQuery = performanceQuery.eq('month', parseInt(selectedMonth));
       }
       if (selectedYear && selectedYear !== 'all') {
-        query = query.eq('year', parseInt(selectedYear));
+        performanceQuery = performanceQuery.eq('year', parseInt(selectedYear));
       }
       if (selectedUserId && selectedUserId !== 'all') {
-        query = query.eq('user_id', selectedUserId);
+        performanceQuery = performanceQuery.eq('user_id', selectedUserId);
       }
 
       // Non-admins can only see their own performance
       if (userProfile?.role !== 'admin') {
-        query = query.eq('user_id', user?.id);
+        performanceQuery = performanceQuery.eq('user_id', user?.id);
       }
 
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      setPerformances(data as unknown as PerformanceRecord[]);
+      const { data: performanceData, error: performanceError } = await performanceQuery;
+
+      if (performanceError) throw performanceError;
+
+      // Get user profiles for admin view
+      if (userProfile?.role === 'admin' && performanceData?.length > 0) {
+        const userIds = [...new Set(performanceData.map(p => p.user_id))];
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, phone_number')
+          .in('user_id', userIds);
+
+        // Merge profile data with performance
+        const performanceWithProfiles = performanceData.map(performance => ({
+          ...performance,
+          profiles: profilesData?.find(p => p.user_id === performance.user_id)
+        }));
+
+        setPerformances(performanceWithProfiles);
+      } else {
+        setPerformances(performanceData || []);
+      }
     } catch (error) {
       console.error('Error fetching performance records:', error);
       toast({
@@ -244,12 +261,6 @@ const PerformancePage = () => {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
-  };
 
   const getPaymentStatusBadge = (status: string) => {
     switch (status) {

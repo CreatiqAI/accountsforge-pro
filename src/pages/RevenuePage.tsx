@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { formatCurrency } from '@/lib/utils';
 
 interface Revenue {
   id: string;
@@ -48,30 +49,39 @@ const RevenuePage = () => {
 
   const fetchRevenues = async () => {
     try {
-      let query = supabase
+      // First get revenues
+      let revenuesQuery = supabase
         .from('revenues')
-        .select(`
-          id,
-          amount,
-          customer_name,
-          invoice_number,
-          revenue_date,
-          proof_url,
-          status,
-          user_id,
-          profiles(full_name, phone_number)
-        `)
+        .select('*')
         .order('revenue_date', { ascending: false });
 
       // Non-admins can only see their own revenues
       if (userProfile?.role !== 'admin') {
-        query = query.eq('user_id', user?.id);
+        revenuesQuery = revenuesQuery.eq('user_id', user?.id);
       }
 
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      setRevenues((data || []) as Revenue[]);
+      const { data: revenuesData, error: revenuesError } = await revenuesQuery;
+
+      if (revenuesError) throw revenuesError;
+
+      // Get user profiles for admin view
+      if (userProfile?.role === 'admin' && revenuesData?.length > 0) {
+        const userIds = [...new Set(revenuesData.map(r => r.user_id))];
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, phone_number')
+          .in('user_id', userIds);
+
+        // Merge profile data with revenues
+        const revenuesWithProfiles = revenuesData.map(revenue => ({
+          ...revenue,
+          profiles: profilesData?.find(p => p.user_id === revenue.user_id)
+        }));
+
+        setRevenues(revenuesWithProfiles);
+      } else {
+        setRevenues(revenuesData || []);
+      }
     } catch (error) {
       console.error('Error fetching revenues:', error);
       toast({
@@ -193,12 +203,6 @@ const RevenuePage = () => {
     setIsViewDialogOpen(true);
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
-  };
 
   if (loading) {
     return (

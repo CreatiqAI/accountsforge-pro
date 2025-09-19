@@ -24,7 +24,7 @@ const AuthPage = () => {
     phone: '+60',
     password: '',
     fullName: '',
-    role: 'salesman'
+    role: 'employee'
   });
 
   // Format phone number to ensure +60 prefix
@@ -107,7 +107,7 @@ const AuthPage = () => {
       });
       // Switch to sign in tab
       // Reset form but keep +60 prefix
-      setSignUpData({ phone: '+60', password: '', fullName: '', role: 'salesman' });
+      setSignUpData({ phone: '+60', password: '', fullName: '', role: 'employee' });
     }
     
     setLoading(false);
@@ -236,13 +236,14 @@ const AuthPage = () => {
                           <SelectValue placeholder="Select your role" />
                         </SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="employee">Employee</SelectItem>
                           <SelectItem value="salesman">Salesman</SelectItem>
                           <SelectItem value="admin">Admin</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Choose Admin to access all features, or Salesman for standard access
+                      Employee: Submit expenses and claims | Salesman: Track sales + commissions | Admin: Full access
                     </p>
                   </div>
                   

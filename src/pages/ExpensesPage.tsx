@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { formatCurrency } from '@/lib/utils';
 
 interface Expense {
   id: string;
@@ -45,32 +46,39 @@ const ExpensesPage = () => {
 
   const fetchExpenses = async () => {
     try {
-      let query = supabase
+      // First get expenses
+      let expensesQuery = supabase
         .from('expenses')
-        .select(`
-          id,
-          amount,
-          description,
-          expense_date,
-          status,
-          proof_url,
-          user_id,
-          profiles(
-            full_name,
-            phone_number
-          )
-        `)
+        .select('*')
         .order('expense_date', { ascending: false });
 
       // Non-admins can only see their own expenses
       if (userProfile?.role !== 'admin') {
-        query = query.eq('user_id', user?.id);
+        expensesQuery = expensesQuery.eq('user_id', user?.id);
       }
 
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      setExpenses((data || []) as Expense[]);
+      const { data: expensesData, error: expensesError } = await expensesQuery;
+
+      if (expensesError) throw expensesError;
+
+      // Get user profiles for admin view
+      if (userProfile?.role === 'admin' && expensesData?.length > 0) {
+        const userIds = [...new Set(expensesData.map(e => e.user_id))];
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, phone_number')
+          .in('user_id', userIds);
+
+        // Merge profile data with expenses
+        const expensesWithProfiles = expensesData.map(expense => ({
+          ...expense,
+          profiles: profilesData?.find(p => p.user_id === expense.user_id)
+        }));
+
+        setExpenses(expensesWithProfiles);
+      } else {
+        setExpenses(expensesData || []);
+      }
     } catch (error) {
       console.error('Error fetching expenses:', error);
       toast({
@@ -181,12 +189,6 @@ const ExpensesPage = () => {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
-  };
 
   const handleViewExpense = (expense: Expense) => {
     setSelectedExpense(expense);

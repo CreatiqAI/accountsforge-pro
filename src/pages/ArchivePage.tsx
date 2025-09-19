@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
 interface ArchiveItem {
@@ -100,12 +101,6 @@ const ArchivePage = () => {
     item.customer_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
-  };
 
   const getTypeBadge = (type: string) => {
     return type === 'revenue' 

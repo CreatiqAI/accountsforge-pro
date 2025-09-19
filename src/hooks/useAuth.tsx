@@ -78,20 +78,31 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, []);
 
   const signUp = async (phone: string, password: string, fullName: string, role: string) => {
-    const redirectUrl = `${window.location.origin}/`;
-    
-    const { error } = await supabase.auth.signUp({
-      phone,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: {
-          full_name: fullName,
-          role: role
+    try {
+      // Create the auth user - the database trigger will automatically create the profile
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        phone,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            role: role
+          }
         }
+      });
+
+      if (authError) {
+        console.error('Auth signup error:', authError);
+        return { error: authError };
       }
-    });
-    return { error };
+
+      // Profile will be automatically created by the database trigger
+      // No need to manually insert into profiles table
+      return { error: null };
+    } catch (error) {
+      console.error('Signup error:', error);
+      return { error };
+    }
   };
 
   const signIn = async (phone: string, password: string) => {

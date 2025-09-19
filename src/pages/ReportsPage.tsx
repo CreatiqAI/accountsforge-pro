@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
 interface ProfitLossData {
@@ -99,12 +100,6 @@ const ReportsPage = () => {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
-  };
 
   const exportToCSV = () => {
     const headers = ['Type', 'Date', 'Description', 'Amount'];
@@ -362,7 +357,7 @@ const ReportsPage = () => {
                   month: 'long', 
                   day: 'numeric' 
                 })}</p>
-                <p className="mt-2">All amounts in USD</p>
+                <p className="mt-2">All amounts in Malaysian Ringgit (RM)</p>
               </div>
             </div>
 
